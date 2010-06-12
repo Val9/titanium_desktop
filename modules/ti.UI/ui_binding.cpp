@@ -3,8 +3,9 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "ui_module.h"
 #include <string>
+
+#include "ui_binding.h"
 
 namespace ti
 {
@@ -12,9 +13,22 @@ namespace ti
 
 	UIBinding::UIBinding(Host* host) :
 		KAccessorObject("UI"),
-		host(host)
+#ifdef OS_OSX
+		dockMenu(0),
+		defaultMenu(0),
+		nativeMenu(0),
+		nativeDockMenu(0),
+		savedDockView(0),
+		application(0),
+#endif
+		host(host),
+		activeWindow(0),
+		menu(0),
+		contextMenu(0)
 	{
 		instance = this;
+
+		this->Initialize();
 
 		this->Set("CENTERED", Value::NewInt(DEFAULT_POSITION));
 
@@ -30,10 +44,12 @@ namespace ti
 		this->SetMethod("setIcon", &UIBinding::_SetIcon);
 		this->SetMethod("addTray", &UIBinding::_AddTray);
 		this->SetMethod("clearTray", &UIBinding::_ClearTray);
+#ifdef OS_OSX
 		this->SetMethod("setDockIcon", &UIBinding::_SetDockIcon);
 		this->SetMethod("setDockMenu", &UIBinding::_SetDockMenu);
 		this->SetMethod("setBadge", &UIBinding::_SetBadge);
 		this->SetMethod("setBadgeImage", &UIBinding::_SetBadgeImage);
+#endif
 		this->SetMethod("getIdleTime", &UIBinding::_GetIdleTime);
 		this->SetMethod("getOpenWindows", &UIBinding::_GetOpenWindows);
 		this->SetMethod("getWindows", &UIBinding::_GetOpenWindows);
@@ -45,6 +61,17 @@ namespace ti
 
 		this->SetObject("Clipboard", new Clipboard());
 		Logger::AddLoggerCallback(&UIBinding::Log);
+	}
+
+	UIBinding::~UIBinding()
+	{
+		this->ClearTray();
+
+		// Shutdown notifications
+		Notification::ShutdownImpl();
+
+		// Perform platform specific cleanup
+		this->Shutdown();
 	}
 
 	void UIBinding::CreateMainWindow(AutoPtr<WindowConfig> config)
@@ -81,19 +108,6 @@ namespace ti
 			config = WindowConfig::Default();
 
 		result->SetObject(UserWindow::CreateWindow(config, 0));
-	}
-
-	void UIBinding::ErrorDialog(std::string msg)
-	{
-		std::cerr << msg << std::endl;
-	}
-
-	UIBinding::~UIBinding()
-	{
-		this->ClearTray();
-
-		// Shutdown notifications
-		Notification::ShutdownImpl();
 	}
 
 	Host* UIBinding::GetHost()
@@ -158,13 +172,7 @@ namespace ti
 
 	void UIBinding::_CreateMenu(const ValueList& args, KValueRef result)
 	{
-		result->SetObject(__CreateMenu(args));
-	}
-
-	AutoMenu UIBinding::__CreateMenu(const ValueList& args)
-	{
-		// call into the native code to retrieve the menu
-		return this->CreateMenu();
+		result->SetObject(new Menu());
 	}
 
 	void UIBinding::_CreateMenuItem(const ValueList& args, KValueRef result)
@@ -179,7 +187,7 @@ namespace ti
 		KMethodRef eventListener = args.GetMethod(1, NULL);
 		std::string iconURL = args.GetString(2, "");
 
-		AutoMenuItem item = this->CreateMenuItem();
+		AutoMenuItem item = new MenuItem(MenuItem::NORMAL);
 		if (!label.empty())
 			item->SetLabel(label);
 		if (!iconURL.empty())
@@ -202,7 +210,7 @@ namespace ti
 		std::string label = args.GetString(0, "");
 		KMethodRef eventListener = args.GetMethod(1, NULL);
 
-		AutoMenuItem item = this->CreateCheckMenuItem();
+		AutoMenuItem item = new MenuItem(MenuItem::CHECK);
 		if (!label.empty())
 			item->SetLabel(label);
 		if (!eventListener.isNull())
@@ -218,15 +226,18 @@ namespace ti
 
 	AutoMenuItem UIBinding::__CreateSeparatorMenuItem(const ValueList& args)
 	{
-		return this->CreateSeparatorMenuItem();
+		return new MenuItem(MenuItem::SEPARATOR);
 	}
 
 	void UIBinding::_SetMenu(const ValueList& args, KValueRef result)
 	{
 		args.VerifyException("setMenu", "o|0");
-		AutoMenu menu(args.GetObject(0, 0).cast<Menu>());
 
-		this->SetMenu(menu); // platform-specific impl
+		AutoMenu menu(args.GetObject(0, 0).cast<Menu>());
+		if (this->menu.get() == menu.get()) return;
+
+		this->menu = menu;
+		this->SetupMainMenu();
 
 		// Notify all windows that the app menu has changed.
 		std::vector<AutoUserWindow>::iterator i = openWindows.begin();
@@ -237,7 +248,7 @@ namespace ti
 
 	void UIBinding::_GetMenu(const ValueList& args, KValueRef result)
 	{
-		AutoMenu menu = this->GetMenu();
+		AutoMenu menu = this->menu;
 		if (menu.isNull())
 		{
 			result->SetNull();
@@ -251,14 +262,22 @@ namespace ti
 	void UIBinding::_SetContextMenu(const ValueList& args, KValueRef result)
 	{
 		args.VerifyException("setContextMenu", "o|0");
+
 		AutoMenu menu(args.GetObject(0, 0).cast<Menu>());
-		this->SetContextMenu(menu);
+		this->contextMenu = menu;
 	}
 
 	void UIBinding::_GetContextMenu(const ValueList& args, KValueRef result)
 	{
-		AutoMenu menu = this->GetContextMenu();
-		result->SetObject(menu);
+		AutoMenu menu = this->contextMenu;
+		if(menu.isNull())
+		{
+			result->SetNull();
+		}
+		else
+		{
+			result->SetObject(menu);
+		}
 	}
 
 	void UIBinding::_SetIcon(const ValueList& args, KValueRef result)
@@ -293,7 +312,7 @@ namespace ti
 		std::string iconURL = args.GetString(0);
 
 		KMethodRef cbSingleClick = args.GetMethod(1, NULL);
-		AutoTrayItem item = this->AddTray(iconURL, cbSingleClick);
+		AutoTrayItem item = new TrayItem(iconURL, cbSingleClick);
 		this->trayItems.push_back(item);
 		result->SetObject(item);
 	}

@@ -3,7 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "ui_module.h"
+#include "clipboard.h"
+
 #include <Poco/StringTokenizer.h>
 using Poco::StringTokenizer;
 

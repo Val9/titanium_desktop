@@ -6,7 +6,7 @@
 #ifndef _TRAY_ITEM_H_
 #define _TRAY_ITEM_H_
 
-#include <kroll/kroll.h>
+#include "ui_module.h"
 #include "menu_item.h"
 
 namespace ti
@@ -15,13 +15,17 @@ namespace ti
 	{
 
 	public:
-		TrayItem(std::string& iconURL);
+		TrayItem(std::string& iconURL, KMethodRef cb);
 		~TrayItem();
 
-		virtual void SetIcon(std::string& iconPath) = 0;
-		virtual void SetMenu(AutoMenu menu) = 0;
-		virtual void SetHint(std::string& hint) = 0;
-		virtual void Remove() = 0;
+		// Platform implementations
+		void Initialize();
+		void Shutdown();
+		void SetIcon(std::string& iconPath);
+		void SetMenu(AutoMenu menu);
+		void SetHint(std::string& hint);
+		void Remove();
+		void InvokeCallback();
 
 		void _SetIcon(const ValueList& args, KValueRef result);
 		void _SetMenu(const ValueList& args, KValueRef result);
@@ -37,6 +41,13 @@ namespace ti
 		std::string iconPath;
 		std::string hint;
 		bool removed;
+		KMethodRef callback;
+
+	private:
+#ifdef OS_OSX
+		NSMenu* nativeMenu;
+		NSStatusItem* nativeItem;
+#endif
 	};
 }
 

@@ -5,15 +5,15 @@
  */
 #import <Cocoa/Cocoa.h>
 #import <AppKit/AppKit.h>
+
 #import "../ui_module.h"
-#import "osx_ui_binding.h"
-#import "osx_menu_item.h"
+#import "../menu.h"
 
 @implementation TiApplicationDelegate
 
 - (NSMenu *)applicationDockMenu:(NSApplication *)sender
 {
-	AutoPtr<OSXMenu> menu = binding->GetDockMenu().cast<OSXMenu>();
+	AutoPtr<Menu> menu = binding->GetDockMenu();
 	if (!menu.isNull()) {
 		NSMenu* nativeMenu = menu->CreateNativeNow(false);
 		return nativeMenu;
@@ -22,7 +22,7 @@
 	}
 }
 
-- (id)initWithBinding:(ti::OSXUIBinding*)b
+- (id)initWithBinding:(ti::UIBinding*)b
 {
 	self = [super init];
 	if (self)

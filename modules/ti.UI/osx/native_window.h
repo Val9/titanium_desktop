@@ -6,9 +6,10 @@
 #ifndef _NATIVE_WINDOW_H_
 #define _NATIVE_WINDOW_H_
 
-#import "../ui_module.h"
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebInspector.h>
+
+#import "webview_delegate.h"
 
 @class WebViewDelegate;
 
@@ -20,13 +21,13 @@ using namespace ti;
 	WebView* webView;
 	WebViewDelegate* delegate;
 	BOOL requiresDisplay;
-	AutoPtr<OSXUserWindow>* userWindow;
+	AutoPtr<UserWindow>* userWindow;
 	WebInspector* inspector;
 	BOOL fullscreen;
 	BOOL focused;
 	NSRect savedFrame;
 }
-- (void)setUserWindow:(AutoPtr<OSXUserWindow>*)inUserWindow;
+- (void)setUserWindow:(AutoUserWindow*)inUserWindow;
 - (void)setupDecorations:(AutoPtr<WindowConfig>)config;
 - (void)setTransparency:(double)transparency;
 - (void)setFullscreen:(BOOL)yn;
@@ -35,7 +36,7 @@ using namespace ti;
 - (void)open;
 - (void)frameLoaded;
 - (WebView*)webView;
-- (OSXUserWindow*)userWindow;
+- (UserWindow*)userWindow;
 - (void)showInspector:(BOOL)console;
 @end
 

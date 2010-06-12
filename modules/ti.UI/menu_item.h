@@ -5,7 +5,10 @@
 */
 #ifndef _MENU_ITEM_H_
 #define _MENU_ITEM_H_
-#include <kroll/kroll.h>
+
+#include "ui_module.h"
+#include "menu.h"
+
 namespace ti
 {
 	class MenuItem : public KEventObject
@@ -50,17 +53,23 @@ namespace ti
 		bool IsSeparator();
 		bool IsCheck();
 		bool IsEnabled();
-		virtual void HandleClickEvent(KObjectRef source);
+		void HandleClickEvent(KObjectRef source);
 		void EnsureHasSubmenu();
 		bool ContainsItem(MenuItem* item);
 		bool ContainsSubmenu(Menu* submenu);
 
 		// Platform-specific implementation
-		virtual void SetLabelImpl(std::string newLabel) = 0;
-		virtual void SetIconImpl(std::string newIconPath) = 0;
-		virtual void SetStateImpl(bool newState) = 0;
-		virtual void SetSubmenuImpl(AutoMenu newSubmenu) = 0;
-		virtual void SetEnabledImpl(bool enabled) = 0;
+		void SetLabelImpl(std::string newLabel);
+		void SetIconImpl(std::string newIconPath);
+		void SetStateImpl(bool newState);
+		void SetSubmenuImpl(AutoMenu newSubmenu);
+		void SetEnabledImpl(bool enabled);
+
+#ifdef OS_OSX
+		NSMenuItem* CreateNative(bool registerNative=true);
+		void DestroyNative(NSMenuItem* realization);
+		void UpdateNativeMenuItems();
+#endif
 
 	protected:
 		MenuItemType type;
@@ -73,6 +82,19 @@ namespace ti
 		std::vector<KMethodRef> eventListeners;
 		bool state;
 		bool autoCheck;
+
+	private:
+#ifdef OS_OSX
+		static void SetNSMenuItemTitle(NSMenuItem* item, std::string& title);
+		static void SetNSMenuItemState(NSMenuItem* item, bool state);
+		static void SetNSMenuItemIconPath(
+			NSMenuItem* item, std::string& iconPath, NSImage* image = nil);
+		static void SetNSMenuItemSubmenu(
+			NSMenuItem* item, AutoMenu submenu, bool registerNative=true);
+		static void SetNSMenuItemEnabled(NSMenuItem* item, bool enabled);
+
+		std::vector<NSMenuItem*> nativeItems;
+#endif
 	};
 }
 #endif

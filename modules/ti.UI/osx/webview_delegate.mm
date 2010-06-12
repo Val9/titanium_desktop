@@ -3,11 +3,7 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#include <kroll/kroll.h>
-#include "../ui_module.h"
-#include "osx_menu_item.h"
-#include <WebKit/WebFramePrivate.h>
-#include <WebKit/WebPreferenceKeysPrivate.h>
+#include "webview_delegate.h"
 
 @interface NSApplication (DeclarationStolenFromAppKit)
 - (void)_cycleWindowsReversed:(BOOL)reversed;
@@ -322,8 +318,8 @@
 		config->SetHeight([(NSNumber*)height intValue]);
 	}
 
-	AutoPtr<OSXUserWindow> newOSXWindow(UserWindow::CreateWindow(
-		config, AutoUserWindow([window userWindow], true)).cast<OSXUserWindow>());
+	AutoUserWindow newOSXWindow(UserWindow::CreateWindow(
+		config, AutoUserWindow([window userWindow], true)));
 	newOSXWindow->Open();
 
 	return [newOSXWindow->GetNative() webView];
@@ -568,9 +564,9 @@
 - (NSArray *)webView:(WebView *)sender contextMenuItemsForElement:(NSDictionary *)element defaultMenuItems:(NSArray *)defaultMenuItems
 {
 	UserWindow* uw = [window userWindow];
-	AutoPtr<OSXMenu> menu = uw->GetContextMenu().cast<OSXMenu>();
+	AutoMenu menu = uw->GetContextMenu();
 	if (menu.isNull())
-		menu = UIBinding::GetInstance()->GetContextMenu().cast<OSXMenu>();
+		menu = UIBinding::GetInstance()->GetContextMenu();
 
 	NSMutableArray* menuItems = [[[NSMutableArray alloc] init] autorelease];
 	if (!menu.isNull())

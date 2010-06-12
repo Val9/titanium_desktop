@@ -3,10 +3,11 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#import "../ui_module.h"
+#import "../user_window.h"
 
 namespace ti
 {
+	/* TODO: can we kill this code off?
 	static unsigned int toWindowMask(AutoPtr<WindowConfig> config)
 	{
 		unsigned int mask = 0;
@@ -24,27 +25,14 @@ namespace ti
 		}
 
 		return mask;
-	}
-
-	OSXUserWindow::OSXUserWindow(AutoPtr<WindowConfig> config, AutoUserWindow& parent) :
-		UserWindow(config, parent),
-		nativeWindow(nil),
-		nativeWindowMask(toWindowMask(config)),
-		menu(0),
-		contextMenu(0),
-		osxBinding(binding.cast<OSXUIBinding>())
-	{
-		// Initialization of the native window and its properties now happen in Open(),
-		// so that developers can tweak window properties before comitting to them
-		// by calling Open(...)
-	}
+	}*/
 
 	AutoUserWindow UserWindow::CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent)
 	{
-		return new OSXUserWindow(config, parent);
+		return new UserWindow(config, parent);
 	}
 
-	void OSXUserWindow::Open()
+	void UserWindow::OpenImpl()
 	{
 		NSRect frame;
 		if (!config->IsFullscreen())
@@ -64,7 +52,7 @@ namespace ti
 			styleMask:nativeWindowMask
 			backing:NSBackingStoreBuffered
 			defer:NO];
-		[nativeWindow setUserWindow:new AutoPtr<OSXUserWindow>(this, true)];
+		[nativeWindow setUserWindow:new AutoPtr<UserWindow>(this, true)];
 
 		if (!config->IsFullscreen())
 		{
@@ -99,18 +87,17 @@ namespace ti
 
 		[nativeWindow setExcludedFromWindowsMenu:config->IsToolWindow()];
 		[nativeWindow open];
-		UserWindow::Open();
 		this->FireEvent(Event::OPENED);
 	}
 
-	OSXUserWindow::~OSXUserWindow()
+	void UserWindow::Cleanup()
 	{
 		if (this->active)
 			this->Close();
 		[nativeWindow dealloc];
 	}
 
-	void OSXUserWindow::Hide()
+	void UserWindow::Hide()
 	{
 		if (nativeWindow)
 		{
@@ -122,7 +109,7 @@ namespace ti
 		}
 	}
 	
-	void OSXUserWindow::Focus()
+	void UserWindow::Focus()
 	{
 		if (nativeWindow && ![nativeWindow isKeyWindow])
 		{
@@ -135,7 +122,7 @@ namespace ti
 		}
 	}
 
-	void OSXUserWindow::Unfocus()
+	void UserWindow::Unfocus()
 	{
 		// Cocoa doesn't really have a concept of blurring a window, but
 		// we can send the window to the back of the window list. We need
@@ -149,7 +136,7 @@ namespace ti
 		}
 	}
 
-	void OSXUserWindow::Show()
+	void UserWindow::Show()
 	{
 		if (nativeWindow)
 		{
@@ -158,7 +145,7 @@ namespace ti
 		}
 	}
 
-	void OSXUserWindow::Minimize()
+	void UserWindow::Minimize()
 	{
 		if (nativeWindow)
 		{
@@ -166,7 +153,7 @@ namespace ti
 		}
 	}
 
-	void OSXUserWindow::Unminimize()
+	void UserWindow::Unminimize()
 	{
 		if (nativeWindow && [nativeWindow isMiniaturized])
 		{
@@ -174,7 +161,7 @@ namespace ti
 		}
 	}
 
-	bool OSXUserWindow::IsMinimized()
+	bool UserWindow::IsMinimized()
 	{
 		if (nativeWindow)
 		{
@@ -186,7 +173,7 @@ namespace ti
 		}
 	}
 
-	void OSXUserWindow::Maximize()
+	void UserWindow::Maximize()
 	{
 		if (nativeWindow && ![nativeWindow isZoomed])
 		{
@@ -194,7 +181,7 @@ namespace ti
 		}
 	}
 	
-	void OSXUserWindow::Unmaximize()
+	void UserWindow::Unmaximize()
 	{
 		if (nativeWindow && [nativeWindow isZoomed])
 		{
@@ -202,7 +189,7 @@ namespace ti
 		}
 	}
 
-	bool OSXUserWindow::IsMaximized()
+	bool UserWindow::IsMaximized()
 	{
 		if (nativeWindow)
 		{
@@ -214,34 +201,28 @@ namespace ti
 		}
 	}
 
-	bool OSXUserWindow::IsUsingChrome()
+	bool UserWindow::IsUsingChrome()
 	{
 		return this->config->IsUsingChrome();
 	}
 
-	bool OSXUserWindow::IsUsingScrollbars()
+	bool UserWindow::IsUsingScrollbars()
 	{
 		return this->config->IsUsingScrollbars();
 	}
 
-	bool OSXUserWindow::IsFullscreen()
+	bool UserWindow::IsFullscreen()
 	{
 		return this->config->IsFullscreen();
 	}
 
-	bool OSXUserWindow::Close()
+	bool UserWindow::CloseImpl()
 	{
 		// Hold a reference here so we can still get the value of
 		// this->timer and this->active even after calling ::Closed
 		// which will remove us from the open window list and decrement
 		// the reference count.
 		AutoUserWindow keep(this, true);
-
-		// Guard against re-closing a window
-		if (!this->active || !this->nativeWindow)
-			return false;
-
-		UserWindow::Close();
 
 		// If the window is still active at this point, it  indicates
 		// an event listener has cancelled this close event.
@@ -256,7 +237,7 @@ namespace ti
 		return !this->active;
 	}
 
-	NSScreen* OSXUserWindow::GetWindowScreen()
+	NSScreen* UserWindow::GetWindowScreen()
 	{
 		NSScreen* screen = [nativeWindow screen];
 		if (screen == nil) 
@@ -271,7 +252,7 @@ namespace ti
 		return screen;
 	}
 
-	NSRect OSXUserWindow::CalculateWindowFrame(double x, double y, double width, double height)
+	NSRect UserWindow::CalculateWindowFrame(double x, double y, double width, double height)
 	{
 		// Adjust for the size of the frame decorations (chrome). Don't modify the
 		// position though, because we want it to directly control frame position
@@ -301,7 +282,7 @@ namespace ti
 		return contentFrame;
 	}
 
-	double OSXUserWindow::GetX()
+	double UserWindow::GetX()
 	{
 		if (!nativeWindow)
 			return this->config->GetX();
@@ -312,12 +293,12 @@ namespace ti
 		return [nativeWindow frame].origin.x - screenFrame.origin.x;
 	}
 
-	void OSXUserWindow::SetX(double x)
+	void UserWindow::SetX(double x)
 	{
 		this->MoveTo(x, this->GetY());
 	}
 
-	double OSXUserWindow::GetY()
+	double UserWindow::GetY()
 	{
 		if (!nativeWindow)
 			return this->config->GetY();
@@ -332,12 +313,12 @@ namespace ti
 		return y;
 	}
 
-	void OSXUserWindow::SetY(double y)
+	void UserWindow::SetY(double y)
 	{
 		this->MoveTo(this->GetX(), y);
 	}
 
-	void OSXUserWindow::MoveTo(double x, double y)
+	void UserWindow::MoveTo(double x, double y)
 	{
 		if (!nativeWindow)
 			return;
@@ -346,7 +327,7 @@ namespace ti
 		[nativeWindow setFrameOrigin:newRect.origin];
 	}
 
-	double OSXUserWindow::GetWidth()
+	double UserWindow::GetWidth()
 	{
 		if (!nativeWindow)
 			return this->config->GetWidth();
@@ -354,7 +335,7 @@ namespace ti
 		return [[nativeWindow contentView] bounds].size.width;
 	}
 
-	void OSXUserWindow::SetWidth(double width)
+	void UserWindow::SetWidth(double width)
 	{
 		if (!nativeWindow)
 			return;
@@ -373,7 +354,7 @@ namespace ti
 		[nativeWindow setFrame:newFrame display:config->IsVisible() animate:YES];
 	}
 
-	double OSXUserWindow::GetHeight()
+	double UserWindow::GetHeight()
 	{
 		if (!nativeWindow)
 			return this->config->GetHeight();
@@ -381,7 +362,7 @@ namespace ti
 		return [[nativeWindow contentView] bounds].size.height;
 	}
 
-	void OSXUserWindow::SetHeight(double height)
+	void UserWindow::SetHeight(double height)
 	{
 		if (!nativeWindow)
 			return;
@@ -400,7 +381,7 @@ namespace ti
 		[nativeWindow setFrame:newFrame display:config->IsVisible() animate:NO];
 	}
 
-	void OSXUserWindow::ReconfigureWindowConstraints()
+	void UserWindow::ReconfigureWindowConstraints()
 	{
 		if (!nativeWindow)
 			return;
@@ -451,53 +432,53 @@ namespace ti
 		[nativeWindow setContentMaxSize:maxSize];
 	}
 
-	double OSXUserWindow::GetMaxWidth()
+	double UserWindow::GetMaxWidth()
 	{
 		return this->config->GetMaxWidth();
 	}
 
-	void OSXUserWindow::SetMaxWidth(double width)
+	void UserWindow::SetMaxWidth(double width)
 	{
 		this->ReconfigureWindowConstraints();
 	}
 
-	double OSXUserWindow::GetMinWidth()
+	double UserWindow::GetMinWidth()
 	{
 		return this->config->GetMinWidth();
 	}
 
-	void OSXUserWindow::SetMinWidth(double width)
+	void UserWindow::SetMinWidth(double width)
 	{
 		this->ReconfigureWindowConstraints();
 	}
 
-	double OSXUserWindow::GetMaxHeight()
+	double UserWindow::GetMaxHeight()
 	{
 		return this->config->GetMaxHeight();
 	}
 
-	void OSXUserWindow::SetMaxHeight(double height)
+	void UserWindow::SetMaxHeight(double height)
 	{
 		this->ReconfigureWindowConstraints();
 	}
 	
-	double OSXUserWindow::GetMinHeight()
+	double UserWindow::GetMinHeight()
 	{
 		return this->config->GetMinHeight();
 	}
 	
-	void OSXUserWindow::SetMinHeight(double height)
+	void UserWindow::SetMinHeight(double height)
 	{
 		this->ReconfigureWindowConstraints();
 	}
 
-	Bounds OSXUserWindow::GetBoundsImpl()
+	Bounds UserWindow::GetBoundsImpl()
 	{
 		Bounds b = {this->GetX(), this->GetY(), this->GetWidth(), this->GetHeight() };
 		return b;
 	}
 
-	void OSXUserWindow::SetBoundsImpl(Bounds bounds)
+	void UserWindow::SetBoundsImpl(Bounds bounds)
 	{
 		if (nativeWindow)
 		{
@@ -513,12 +494,12 @@ namespace ti
 		}
 	}
 
-	std::string OSXUserWindow::GetTitle()
+	std::string UserWindow::GetTitle()
 	{
 		return this->config->GetTitle();
 	}
 
-	void OSXUserWindow::SetTitleImpl(const std::string& newTitle)
+	void UserWindow::SetTitleImpl(const std::string& newTitle)
 	{
 		if (nativeWindow != nil)
 		{
@@ -526,7 +507,7 @@ namespace ti
 		}
 	}
 
-	std::string OSXUserWindow::GetURL()
+	std::string UserWindow::GetURL()
 	{
 		if (nativeWindow) {
 			NSString* url = [[nativeWindow webView] mainFrameURL];
@@ -537,7 +518,7 @@ namespace ti
 		return this->config->GetURL();
 	}
 
-	void OSXUserWindow::SetURL(std::string& url)
+	void UserWindow::SetURL(std::string& url)
 	{
 		if (nativeWindow != nil)
 		{
@@ -547,12 +528,12 @@ namespace ti
 		}
 	}
 
-	bool OSXUserWindow::IsResizable()
+	bool UserWindow::IsResizable()
 	{
 		return this->config->IsResizable();
 	}
 
-	void OSXUserWindow::SetResizableImpl(bool resizable)
+	void UserWindow::SetResizableImpl(bool resizable)
 	{
 		if (!nativeWindow)
 			return;
@@ -569,12 +550,12 @@ namespace ti
 		}
 	}
 
-	bool OSXUserWindow::IsMaximizable()
+	bool UserWindow::IsMaximizable()
 	{
 		return this->config->IsMaximizable();
 	}
 
-	void OSXUserWindow::SetMaximizable(bool maximizable)
+	void UserWindow::SetMaximizable(bool maximizable)
 	{
 		if (nativeWindow != nil)
 		{
@@ -582,12 +563,12 @@ namespace ti
 		}
 	}
 
-	bool OSXUserWindow::IsMinimizable()
+	bool UserWindow::IsMinimizable()
 	{
 		return this->config->IsMinimizable();
 	}
 
-	void OSXUserWindow::SetMinimizable(bool minimizable)
+	void UserWindow::SetMinimizable(bool minimizable)
 	{
 		if (nativeWindow != nil)
 		{
@@ -595,12 +576,12 @@ namespace ti
 		}
 	}
 
-	bool OSXUserWindow::IsCloseable()
+	bool UserWindow::IsCloseable()
 	{
 		return this->config->IsCloseable();
 	}
 
-	void OSXUserWindow::SetCloseable(bool closeable)
+	void UserWindow::SetCloseable(bool closeable)
 	{
 		if (nativeWindow != nil)
 		{
@@ -608,17 +589,17 @@ namespace ti
 		}
 	}
 
-	bool OSXUserWindow::IsVisible()
+	bool UserWindow::IsVisible()
 	{
 		return this->config->IsVisible();
 	}
 
-	double OSXUserWindow::GetTransparency()
+	double UserWindow::GetTransparency()
 	{
 		return this->config->GetTransparency();
 	}
 
-	void OSXUserWindow::SetTransparency(double transparency)
+	void UserWindow::SetTransparency(double transparency)
 	{
 		if (nativeWindow != nil)
 		{
@@ -626,7 +607,7 @@ namespace ti
 		}
 	}
 
-	void OSXUserWindow::SetFullscreen(bool fullscreen)
+	void UserWindow::SetFullscreen(bool fullscreen)
 	{
 		if (nativeWindow != nil)
 		{
@@ -634,62 +615,62 @@ namespace ti
 		}
 	}
 
-	void OSXUserWindow::SetUsingChrome(bool chrome)
+	void UserWindow::SetUsingChrome(bool chrome)
 	{
 		this->config->SetUsingChrome(chrome);
 	}
 
-	void OSXUserWindow::SetMenu(AutoMenu menu)
+	void UserWindow::SetMenu(AutoMenu menu)
 	{	
 		if (this->menu.get() == menu.get())
 		{
 			return;
 		}
-		this->menu = menu.cast<OSXMenu>();
-		osxBinding->SetupMainMenu();
+		this->menu = menu;
+		binding->SetupMainMenu();
 	}
 
-	AutoMenu OSXUserWindow::GetMenu()
+	AutoMenu UserWindow::GetMenu()
 	{
 		return this->menu;
 	}
 
-	void OSXUserWindow::Focused()
+	void UserWindow::Focused()
 	{
-		this->osxBinding->WindowFocused(AutoPtr<OSXUserWindow>(this, true));
+		this->binding->WindowFocused(AutoPtr<UserWindow>(this, true));
 	}
 
-	void OSXUserWindow::Unfocused()
+	void UserWindow::Unfocused()
 	{
-		this->osxBinding->WindowUnfocused(AutoPtr<OSXUserWindow>(this, true));
+		this->binding->WindowUnfocused(AutoPtr<UserWindow>(this, true));
 	}
 	
-	void OSXUserWindow::SetContextMenu(AutoMenu menu)
+	void UserWindow::SetContextMenu(AutoMenu menu)
 	{
-		this->contextMenu = menu.cast<OSXMenu>();
+		this->contextMenu = menu;
 	}
 
-	AutoMenu OSXUserWindow::GetContextMenu()
+	AutoMenu UserWindow::GetContextMenu()
 	{
 		return this->contextMenu;
 	}
 
-	void OSXUserWindow::SetIcon(std::string& iconPath)
+	void UserWindow::SetIcon(std::string& iconPath)
 	{
 		this->iconPath = iconPath;
 	}
 
-	std::string& OSXUserWindow::GetIcon()
+	std::string& UserWindow::GetIcon()
 	{
 		return this->iconPath;
 	}
 
-	bool OSXUserWindow::IsTopMost()
+	bool UserWindow::IsTopMost()
 	{
 		return this->config->IsTopMost();
 	}
 
-	void OSXUserWindow::SetTopMost(bool topmost)
+	void UserWindow::SetTopMost(bool topmost)
 	{
 		if (nativeWindow != nil)
 		{
@@ -704,7 +685,7 @@ namespace ti
 		}
 	}
 
-	void OSXUserWindow::OpenChooserDialog(bool files, KMethodRef callback,
+	void UserWindow::OpenChooserDialog(bool files, KMethodRef callback,
 		bool multiple, std::string& title, std::string& path, std::string& defaultName,
 		std::vector<std::string>& types, std::string& typesDescription)
 	{
@@ -754,7 +735,7 @@ namespace ti
 
 	}
 
-	void OSXUserWindow::OpenFileChooserDialog(
+	void UserWindow::OpenFileChooserDialog(
 		KMethodRef callback,
 		bool multiple,
 		std::string& title,
@@ -768,7 +749,7 @@ namespace ti
 			title, path, defaultName, types, typesDescription);
 	}
 
-	void OSXUserWindow::OpenFolderChooserDialog(KMethodRef callback, bool multiple,
+	void UserWindow::OpenFolderChooserDialog(KMethodRef callback, bool multiple,
 		std::string& title, std::string& path, std::string& defaultName)
 	{
 		std::vector<std::string> types;
@@ -778,7 +759,7 @@ namespace ti
 			title, path, defaultName, types, typesDescription);
 	}
 
-	void OSXUserWindow::OpenSaveAsDialog(KMethodRef callback, std::string& title,
+	void UserWindow::OpenSaveAsDialog(KMethodRef callback, std::string& title,
 		std::string& path, std::string& defaultName, std::vector<std::string>& types,
 		std::string& typesDescription)
 	{
@@ -817,12 +798,12 @@ namespace ti
 		this->Show();
 	}
 	
-	void OSXUserWindow::ShowInspector(bool console)
+	void UserWindow::ShowInspector(bool console)
 	{
 		[nativeWindow showInspector:console];
 	}
 
-	void OSXUserWindow::SetContentsImpl(const std::string& content, const std::string& baseURL)
+	void UserWindow::SetContentsImpl(const std::string& content, const std::string& baseURL)
 	{
 		[[[nativeWindow webView] mainFrame]
 			loadHTMLString: [NSString stringWithUTF8String:content.c_str()]

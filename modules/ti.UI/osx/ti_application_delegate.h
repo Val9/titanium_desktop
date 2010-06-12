@@ -5,13 +5,15 @@
  */
 #ifndef TI_APP_H
 #define TI_APP_H
+
 #import "../ui_module.h"
+
 @interface TiApplicationDelegate : NSObject
 {
-	ti::OSXUIBinding *binding;
+	ti::UIBinding *binding;
 }
 
--(id)initWithBinding:(ti::OSXUIBinding*)binding;
+-(id)initWithBinding:(ti::UIBinding*)binding;
 -(BOOL)application:(NSApplication*)theApplication
 	openFile:(NSString*)filename;
 -(BOOL)application:(NSApplication*)theApplication

@@ -3,16 +3,16 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
+#include "../tray_item.h"
+#include "osx_tray_item_delegate.h"
+
 namespace ti
 {
-	OSXTrayItem::OSXTrayItem(std::string& iconURL, KMethodRef cb) :
-		TrayItem(iconURL),
-		nativeMenu(0),
-		menu(0),
-		callback(cb),
-		nativeItem(0)
+	void TrayItem::Initialize()
 	{
+		nativeMenu = 0;
+		nativeItem = 0;
+
 		OSXTrayItemDelegate* delegate = [[OSXTrayItemDelegate alloc] initWithTray:this];
 		NSStatusBar *statusBar = [NSStatusBar systemStatusBar];
 		nativeItem = [statusBar statusItemWithLength:NSVariableStatusItemLength];
@@ -24,26 +24,26 @@ namespace ti
 		this->SetIcon(this->iconPath);
 	}
 
-	OSXTrayItem::~OSXTrayItem()
+	void TrayItem::Shutdown()
 	{
 		if (!this->menu.isNull() && this->nativeMenu) {
 			this->menu->DestroyNative(this->nativeMenu);
 		}
 	}
 
-	void OSXTrayItem::SetIcon(std::string& iconPath)
+	void TrayItem::SetIcon(std::string& iconPath)
 	{
-		NSImage* image = ti::OSXUIBinding::MakeImage(iconPath);
+		NSImage* image = ti::UIBinding::MakeImage(iconPath);
 		[nativeItem setImage:image];
 	}
 
-	void OSXTrayItem::SetMenu(AutoMenu menu)
+	void TrayItem::SetMenu(AutoMenu menu)
 	{
 		if (menu.get() == this->menu.get()) {
 			return;
 		}
 
-		AutoPtr<OSXMenu> newMenu = menu.cast<OSXMenu>();
+		AutoMenu newMenu = menu;
 		NSMenu* newNativeMenu = nil;
 		if (!newMenu.isNull()) {
 			newNativeMenu = newMenu->CreateNativeNow(true);
@@ -57,7 +57,7 @@ namespace ti
 		this->nativeMenu = newNativeMenu;
 	}
 
-	void OSXTrayItem::SetHint(std::string& hint)
+	void TrayItem::SetHint(std::string& hint)
 	{
 		if (hint.empty()) {
 			[nativeItem setToolTip:@""];
@@ -66,14 +66,14 @@ namespace ti
 		}
 	}
 
-	void OSXTrayItem::Remove()
+	void TrayItem::Remove()
 	{
 		[[NSStatusBar systemStatusBar] removeStatusItem:nativeItem];
 		[[nativeItem target] release];
 		[nativeItem release];
 	}
 
-	void OSXTrayItem::InvokeCallback()
+	void TrayItem::InvokeCallback()
 	{
 		if (nativeMenu != nil)
 		{
@@ -86,7 +86,7 @@ namespace ti
 		try {
 			callback->Call(ValueList());
 		} catch (ValueException& e) {
-			Logger* logger = Logger::Get("UI.OSXTrayItem");
+			Logger* logger = Logger::Get("UI.TrayItem");
 			SharedString ss = e.DisplayString();
 			logger->Error("Tray icon callback failed: %s", ss->c_str());
 		}

@@ -3,46 +3,40 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
+#include "../menu_item.h"
+#include "osx_menu_item_delegate.h"
+
 namespace ti
 {
-	OSXMenuItem::OSXMenuItem(MenuItemType type) : MenuItem(type)
-	{
-	}
-
-	OSXMenuItem::~OSXMenuItem()
-	{
-	}
-
-	void OSXMenuItem::SetLabelImpl(std::string newLabel)
+	void MenuItem::SetLabelImpl(std::string newLabel)
 	{
 		if (this->type == SEPARATOR)
 			return;
 		this->UpdateNativeMenuItems();
 	}
 
-	void OSXMenuItem::SetIconImpl(std::string newIconPath)
+	void MenuItem::SetIconImpl(std::string newIconPath)
 	{
 		if (this->type == SEPARATOR || this->type == CHECK)
 			return;
 		this->UpdateNativeMenuItems();
 	}
 
-	void OSXMenuItem::SetStateImpl(bool newState)
+	void MenuItem::SetStateImpl(bool newState)
 	{
 		if (this->type != CHECK)
 			return;
 		this->UpdateNativeMenuItems();
 	}
 
-	void OSXMenuItem::SetSubmenuImpl(AutoMenu newSubmenu)
+	void MenuItem::SetSubmenuImpl(AutoMenu newSubmenu)
 	{
 		if (this->type == SEPARATOR)
 			return;
 		this->UpdateNativeMenuItems();
 	}
 
-	void OSXMenuItem::SetEnabledImpl(bool enabled)
+	void MenuItem::SetEnabledImpl(bool enabled)
 	{
 		if (this->type == SEPARATOR)
 			return;
@@ -50,7 +44,7 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenuItem::SetNSMenuItemTitle(NSMenuItem* item, std::string& title)
+	void MenuItem::SetNSMenuItemTitle(NSMenuItem* item, std::string& title)
 	{
 		NSString* nstitle = [NSString stringWithUTF8String:title.c_str()];
 		[item setTitle:nstitle];
@@ -69,7 +63,7 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenuItem::SetNSMenuItemIconPath(
+	void MenuItem::SetNSMenuItemIconPath(
 		NSMenuItem* item, std::string& iconPath, NSImage* image)
 	{
 		bool needsRelease = false;
@@ -78,7 +72,7 @@ namespace ti
 		// allows callers to do one image creation in cases where the same
 		// image is used over and over again.
 		if (image == nil) {
-			image = OSXUIBinding::MakeImage(iconPath);
+			image = UIBinding::MakeImage(iconPath);
 			needsRelease = true;
 		}
 
@@ -98,17 +92,17 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenuItem::SetNSMenuItemState(NSMenuItem* item, bool state)
+	void MenuItem::SetNSMenuItemState(NSMenuItem* item, bool state)
 	{
 		[item setState:state ? NSOnState : NSOffState];
 	}
 
 	/*static*/
-	void OSXMenuItem::SetNSMenuItemSubmenu(
+	void MenuItem::SetNSMenuItemSubmenu(
 		NSMenuItem* item, AutoMenu submenu, bool registerNative)
 	{
 		if (!submenu.isNull()) {
-			AutoPtr<OSXMenu> osxSubmenu = submenu.cast<OSXMenu>();
+			AutoPtr<Menu> osxSubmenu = submenu.cast<Menu>();
 			NSMenu* nativeMenu = osxSubmenu->CreateNativeLazily(registerNative);
 			[nativeMenu setTitle:[item title]];
 			[item setSubmenu:nativeMenu];
@@ -119,12 +113,12 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenuItem::SetNSMenuItemEnabled(NSMenuItem* item, bool enabled)
+	void MenuItem::SetNSMenuItemEnabled(NSMenuItem* item, bool enabled)
 	{
 		[item setEnabled:(enabled ? YES : NO)];
 	}
 
-	NSMenuItem* OSXMenuItem::CreateNative(bool registerNative)
+	NSMenuItem* MenuItem::CreateNative(bool registerNative)
 	{
 		if (this->IsSeparator()) {
 			return [NSMenuItem separatorItem];
@@ -150,7 +144,7 @@ namespace ti
 		}
 	}
 
-	void OSXMenuItem::DestroyNative(NSMenuItem* realization)
+	void MenuItem::DestroyNative(NSMenuItem* realization)
 	{
 		std::vector<NSMenuItem*>::iterator i = this->nativeItems.begin();
 		while (i != this->nativeItems.end())
@@ -161,7 +155,7 @@ namespace ti
 				i = this->nativeItems.erase(i);
 				if (!this->submenu.isNull() && [item submenu] != nil)
 				{
-					AutoPtr<OSXMenu> osxSubmenu = this->submenu.cast<OSXMenu>();
+					AutoPtr<Menu> osxSubmenu = this->submenu.cast<Menu>();
 					osxSubmenu->DestroyNative([item submenu]);
 				}
 				[item release];
@@ -173,14 +167,14 @@ namespace ti
 		}
 	}
 
-	void OSXMenuItem::UpdateNativeMenuItems()
+	void MenuItem::UpdateNativeMenuItems()
 	{
 		std::vector<NSMenuItem*>::iterator i = this->nativeItems.begin();
 		while (i != this->nativeItems.end())
 		{
 			NSMenuItem* nativeItem = (*i++);
 			if ([nativeItem menu]) {
-				OSXMenu::UpdateNativeMenu([nativeItem menu]);
+				Menu::UpdateNativeMenu([nativeItem menu]);
 			}
 		}
 
@@ -192,17 +186,11 @@ namespace ti
 		{
 			NSMenuItem* nativeItem = (*i++);
 			if ([nativeItem menu] == [NSApp mainMenu]) {
-				OSXUIBinding* binding =
-					dynamic_cast<OSXUIBinding*>(UIBinding::GetInstance());
+				UIBinding* binding = UIBinding::GetInstance();
 				binding->SetupMainMenu(true);
 				break;
 			}
 		}
-	}
-
-	void OSXMenuItem::HandleClickEvent(KObjectRef source)
-	{
-		MenuItem::HandleClickEvent(source);
 	}
 }
 

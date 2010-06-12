@@ -4,7 +4,7 @@
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
 
-#include "../ui_module.h"
+#include "../ui_binding.h"
 
 @interface NSApplication (LegacyWarningSurpression)
 - (id) dockTile;
@@ -25,15 +25,7 @@
 
 namespace ti
 {
-	OSXUIBinding::OSXUIBinding(Host *host) :
-		UIBinding(host),
-		defaultMenu(nil),
-		menu(0),
-		nativeMenu(nil),
-		contextMenu(0),
-		dockMenu(0),
-		nativeDockMenu(nil),
-		activeWindow(0)
+	void UIBinding::Initialize()
 	{
 		application = [[TiApplicationDelegate alloc] initWithBinding:this];
 		[application retain];
@@ -47,8 +39,8 @@ namespace ti
 
 		NSString* appName = [NSString
 			stringWithUTF8String:host->GetApplication()->name.c_str()];
-		OSXMenu::ReplaceAppNameStandinInMenu(this->defaultMenu, appName);
-		OSXMenu::SetupInspectorItem(this->defaultMenu);
+		Menu::ReplaceAppNameStandinInMenu(this->defaultMenu, appName);
+		Menu::SetupInspectorItem(this->defaultMenu);
 		this->SetupMainMenu(true);
 
 		// Register our custom URL handler
@@ -61,49 +53,13 @@ namespace ti
 		[WebView registerURLSchemeAsLocal:@"ti"];
 	}
 
-	OSXUIBinding::~OSXUIBinding()
+	void UIBinding::Shutdown()
 	{
 		[application release];
 		[savedDockView release];
 	}
 
-	AutoMenu OSXUIBinding::CreateMenu()
-	{
-		return new OSXMenu();
-	}
-
-	AutoMenuItem OSXUIBinding::CreateMenuItem()
-	{
-		return new OSXMenuItem(MenuItem::NORMAL);
-	}
-
-	AutoMenuItem OSXUIBinding::CreateSeparatorMenuItem()
-	{
-		return new OSXMenuItem(MenuItem::SEPARATOR);
-	}
-
-	AutoMenuItem OSXUIBinding::CreateCheckMenuItem()
-	{
-		return new OSXMenuItem(MenuItem::CHECK);
-	}
-
-	void OSXUIBinding::SetMenu(AutoMenu menu)
-	{
-		if (this->menu.get() == menu.get())
-		{
-			return;
-		}
-		AutoPtr<OSXMenu> osxmenu = menu.cast<OSXMenu>();
-		this->menu = osxmenu;
-		SetupMainMenu();
-	}
-
-	void OSXUIBinding::SetContextMenu(AutoMenu menu)
-	{
-		this->contextMenu = menu.cast<OSXMenu>();
-	}
-
-	void OSXUIBinding::SetDockIcon(std::string& badgePath)
+	void UIBinding::SetDockIcon(std::string& badgePath)
 	{
 		//TODO: Put Dock Icon support back in for 10.4.
 		if (![NSApp respondsToSelector:@selector(dockTile)]) {
@@ -142,7 +98,7 @@ namespace ti
 		[dockTile display];
 	}
 
-	NSImage* OSXUIBinding::MakeImage(std::string& iconURL)
+	NSImage* UIBinding::MakeImage(std::string& iconURL)
 	{
 		NSString* iconString = [NSString stringWithUTF8String:iconURL.c_str()];
 		if (FileUtils::IsFile(iconURL)) {
@@ -152,35 +108,25 @@ namespace ti
 		}
 	}
 
-	void OSXUIBinding::WindowFocused(AutoPtr<OSXUserWindow> window)
+	void UIBinding::WindowFocused(AutoUserWindow window)
 	{
 		this->activeWindow = window;
 		this->SetupMainMenu();
 	}
 
-	void OSXUIBinding::WindowUnfocused(AutoPtr<OSXUserWindow> window)
+	void UIBinding::WindowUnfocused(AutoUserWindow window)
 	{
 		this->activeWindow = NULL;
 		this->SetupMainMenu();
 	}
 
-	NSMenu* OSXUIBinding::GetDefaultMenu()
+	void UIBinding::SetupMainMenu(bool force)
 	{
-		return this->defaultMenu;
-	}
-
-	AutoPtr<OSXMenu> OSXUIBinding::GetActiveMenu()
-	{
-		return this->activeMenu;
-	}
-
-	void OSXUIBinding::SetupMainMenu(bool force)
-	{
-		AutoPtr<OSXMenu> newActiveMenu = NULL;
+		AutoMenu newActiveMenu = NULL;
 
 		// If there is an active window, search there first for the menu
 		if (!this->activeWindow.isNull()) {
-			newActiveMenu = this->activeWindow->GetMenu().cast<OSXMenu>();
+			newActiveMenu = this->activeWindow->GetMenu();
 		}
 
 		// No active window or that window has no menu, try to use the app menu
@@ -189,13 +135,13 @@ namespace ti
 		}
 
 		if (force || newActiveMenu.get() != this->activeMenu.get()) {
-			AutoPtr<OSXMenu> oldMenu = this->activeMenu; // Save a reference
+			AutoMenu oldMenu = this->activeMenu; // Save a reference
 			NSMenu* oldNativeMenu = [NSApp mainMenu];
 
 			// Actually create and install the new menu
 			NSMenu* newNativeMenu = nil;
 			if (newActiveMenu.isNull()) {
-				newNativeMenu = this->GetDefaultMenu();
+				newNativeMenu = this->defaultMenu;
 			} else {
 				newNativeMenu = [[NSMenu alloc] init];
 				newActiveMenu->FillNativeMainMenu(defaultMenu, newNativeMenu);
@@ -206,27 +152,27 @@ namespace ti
 
 			// Cleanup the old native menu
 			if (!oldMenu.isNull() && oldNativeMenu
-				&& oldNativeMenu != this->GetDefaultMenu()) {
+				&& oldNativeMenu != this->defaultMenu) {
 				oldMenu->DestroyNative(oldNativeMenu);
 			}
 		}
 	}
 
-	void OSXUIBinding::SetupAppMenuParts(NSMenu* nativeMainMenu)
+	void UIBinding::SetupAppMenuParts(NSMenu* nativeMainMenu)
 	{
-		OSXMenu::FixWindowMenu(nativeMainMenu);
-		[NSApp setWindowsMenu:OSXMenu::GetWindowMenu(nativeMainMenu)];
+		Menu::FixWindowMenu(nativeMainMenu);
+		[NSApp setWindowsMenu:Menu::GetWindowMenu(nativeMainMenu)];
 		[NSApp performSelector:@selector(setAppleMenu:)
-			withObject:OSXMenu::GetAppleMenu(nativeMainMenu)];
-		[NSApp setServicesMenu:OSXMenu::GetServicesMenu(nativeMainMenu)];
+			withObject:Menu::GetAppleMenu(nativeMainMenu)];
+		[NSApp setServicesMenu:Menu::GetServicesMenu(nativeMainMenu)];
 	}
 
-	void OSXUIBinding::SetDockMenu(AutoMenu menu)
+	void UIBinding::SetDockMenu(AutoMenu menu)
 	{
-		this->dockMenu = menu.cast<OSXMenu>();
+		this->dockMenu = menu;
 	}
 
-	void OSXUIBinding::SetBadge(std::string& badgeLabel)
+	void UIBinding::SetBadge(std::string& badgeLabel)
 	{
 		//TODO: Put Dock Icon support back in for 10.4.
 		if (![NSApp respondsToSelector:@selector(dockTile)]){
@@ -242,12 +188,12 @@ namespace ti
 		}
 	}
 
-	void OSXUIBinding::SetBadgeImage(std::string& badgePath)
+	void UIBinding::SetBadgeImage(std::string& badgePath)
 	{
 		//TODO: need to support allowing custom badge images
 	}
 
-	void OSXUIBinding::SetIcon(std::string& iconPath)
+	void UIBinding::SetIcon(std::string& iconPath)
 	{
 		if (iconPath.empty())
 		{
@@ -261,27 +207,12 @@ namespace ti
 		}
 	}
 
-	AutoMenu OSXUIBinding::GetDockMenu()
+	AutoMenu UIBinding::GetDockMenu()
 	{
 		return this->dockMenu;
 	}
 
-	AutoMenu OSXUIBinding::GetMenu()
-	{
-		return this->menu;
-	}
-
-	AutoMenu OSXUIBinding::GetContextMenu()
-	{
-		return this->contextMenu;
-	}
-
-	AutoTrayItem OSXUIBinding::AddTray(std::string& iconPath, KMethodRef eventListener)
-	{
-		return new OSXTrayItem(iconPath, eventListener);
-	}
-
-	long OSXUIBinding::GetIdleTime()
+	long UIBinding::GetIdleTime()
 	{
 		// some of the code for this was from:
 		// http://ryanhomer.com/blog/2007/05/31/detecting-when-your-cocoa-application-is-idle/
@@ -348,7 +279,7 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXUIBinding::ErrorDialog(std::string msg)
+	void UIBinding::ErrorDialog(std::string msg)
 	{
 		NSApplicationLoad();
 		NSRunCriticalAlertPanel(@"Application Error", 

@@ -3,11 +3,11 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#import "../ui_module.h"
+#import "osx_menu_delegate.h"
 
 @implementation OSXMenuDelegate
 
-- (id)initWithMenu:(ti::OSXMenu*)inMenu willRegister:(BOOL)willRegister
+- (id)initWithMenu:(ti::Menu*)inMenu willRegister:(BOOL)willRegister
 {
 	if ([super init]) {
 		dirty = YES;
@@ -24,7 +24,7 @@
 	}
 
 	dirty = NO;
-	OSXMenu::ClearNativeMenu(nativeMenu);
+	Menu::ClearNativeMenu(nativeMenu);
 	menu->AddChildrenToNativeMenu(nativeMenu, registerNative ? true : false);
 }
 

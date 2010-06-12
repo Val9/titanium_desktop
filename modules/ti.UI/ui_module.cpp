@@ -3,9 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-
-#include "ui_module.h"
 #include <Poco/URI.h>
+#include "ui_module.h"
 
 namespace ti
 {
@@ -21,13 +20,8 @@ namespace ti
 
 	void UIModule::Start()
 	{
-#ifdef OS_WIN32
-		this->uiBinding = new Win32UIBinding(this, host);
-#elif OS_OSX
-		this->uiBinding = new OSXUIBinding(host);
-#elif OS_LINUX
-		this->uiBinding = new GtkUIBinding(host);
-#endif
+		this->uiBinding = new UIBinding(host);
+
 		host->GetGlobalObject()->SetObject("UI", this->uiBinding);
 		host->GetGlobalObject()->SetObject("Notification", this->uiBinding);
 

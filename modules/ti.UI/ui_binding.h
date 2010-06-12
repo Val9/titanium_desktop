@@ -7,9 +7,14 @@
 #ifndef _UI_BINDING_H_
 #define _UI_BINDING_H_
 
-#include <kroll/kroll.h>
+#include "ui_module.h"
+#include "window_config.h"
+#include "clipboard.h"
+#include "menu.h"
 #include "menu_item.h"
+#include "tray_item.h"
 #include "notification.h"
+#include "user_window.h"
 
 namespace ti
 {
@@ -20,6 +25,7 @@ namespace ti
 		UIBinding(Host *host);
 		virtual ~UIBinding();
 		Host* GetHost();
+		AutoMenu GetActiveMenu() { return activeMenu; }
 
 		void CreateMainWindow(AutoPtr<WindowConfig> config);
 		AutoUserWindow GetMainWindow();
@@ -36,7 +42,6 @@ namespace ti
 		void _CreateMenuItem(const ValueList& args, KValueRef result);
 		void _CreateCheckMenuItem(const ValueList& args, KValueRef result);
 		void _CreateSeparatorMenuItem(const ValueList& args, KValueRef result);
-		AutoMenu __CreateMenu(const ValueList& args);
 		AutoMenuItem __CreateMenuItem(const ValueList& args);
 		AutoMenuItem __CreateCheckMenuItem(const ValueList& args);
 		AutoMenuItem __CreateSeparatorMenuItem(const ValueList& args);
@@ -50,40 +55,56 @@ namespace ti
 		void _ClearTray(const ValueList& args, KValueRef result);
 		void _GetIdleTime(const ValueList& args, KValueRef result);
 
-		/* OS X specific callbacks */
+		AutoMenu GetContextMenu() { return contextMenu; }
+
+#ifdef OS_OSX
 		void _SetDockIcon(const ValueList& args, KValueRef result);
 		void _SetDockMenu(const ValueList& args, KValueRef result);
 		void _SetBadge(const ValueList& args, KValueRef result);
 		void _SetBadgeImage(const ValueList& args, KValueRef result);
 
-		virtual AutoMenu CreateMenu() = 0;
-		virtual AutoMenuItem CreateMenuItem() = 0;;
-		virtual AutoMenuItem CreateCheckMenuItem() = 0;
-		virtual AutoMenuItem CreateSeparatorMenuItem() = 0;
-		virtual void SetMenu(AutoMenu) = 0;
-		virtual void SetContextMenu(AutoMenu) = 0;
-		virtual void SetIcon(std::string& iconPath) = 0;
-		virtual AutoTrayItem AddTray(std::string& iconPath, KMethodRef cbSingleClick) = 0;
-		virtual AutoMenu GetMenu() = 0;
-		virtual AutoMenu GetContextMenu() = 0;
-		virtual long GetIdleTime() = 0;
+		void SetDockIcon(std::string& icon_path);
+		void SetDockMenu(AutoMenu);
+		AutoMenu GetDockMenu();
+		void SetBadge(std::string& badgeLabel);
+		void SetBadgeImage(std::string& badgeImagePath);
+		void WindowFocused(AutoUserWindow window);
+		void WindowUnfocused(AutoUserWindow window);
+		void SetupAppMenuParts(NSMenu* mainMenu);
 
-		/* These have empty impls, because are OS X-only for now */
-		virtual void SetDockIcon(std::string& icon_path) {}
-		virtual void SetDockMenu(AutoMenu) {}
-		virtual void SetBadge(std::string& badgeLabel) {}
-		virtual void SetBadgeImage(std::string& badgeImagePath) {}
+		static NSImage* MakeImage(std::string&);
+#endif
+
+		// Platform implementations
+		void Initialize();
+		void Shutdown();
+		void SetupMainMenu(bool force = false);
+		void SetIcon(std::string& iconPath);
+		long GetIdleTime();
 
 		static void ErrorDialog(std::string);
 		static inline UIBinding* GetInstance() { return instance; }
 
 	protected:
+#ifdef OS_OSX
+		AutoMenu dockMenu;
+		NSMenu* defaultMenu;
+		NSMenu* nativeMenu;
+		NSMenu* nativeDockMenu;
+		NSView* savedDockView;
+		NSObject* application;
+#endif
+
 		static UIBinding* instance;
 		Host* host;
 		AutoUserWindow mainWindow;
+		AutoUserWindow activeWindow;
 		std::vector<AutoUserWindow> openWindows;
 		std::vector<AutoTrayItem> trayItems;
 		std::string iconURL;
+		AutoMenu menu;
+		AutoMenu contextMenu;
+		AutoMenu activeMenu;
 
 		static void Log(Logger::Level level, std::string& message);
 	};

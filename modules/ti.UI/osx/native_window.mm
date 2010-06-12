@@ -21,7 +21,7 @@
 	return YES;
 }
 
-- (void)setUserWindow:(AutoPtr<OSXUserWindow>*)inUserWindow
+- (void)setUserWindow:(AutoUserWindow*)inUserWindow
 {
 	userWindow = inUserWindow;
 }
@@ -98,7 +98,7 @@
 	[super dealloc];
 }
 
-- (OSXUserWindow*)userWindow
+- (UserWindow*)userWindow
 {
 	return userWindow->get();
 }

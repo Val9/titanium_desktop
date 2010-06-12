@@ -3,9 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
+#include "menu.h"
 
-#include <kroll/kroll.h>
-#include "ui_module.h"
 namespace ti
 {
 	using std::vector;
@@ -14,6 +13,8 @@ namespace ti
 	Menu::Menu() :
 		KAccessorObject("UI.Menu")
 	{
+		this->Initialize();
+
 		this->SetMethod("appendItem", &Menu::_AppendItem);
 		this->SetMethod("getItemAt", &Menu::_GetItemAt);
 		this->SetMethod("insertItemAt", &Menu::_InsertItemAt);
@@ -28,6 +29,7 @@ namespace ti
 	Menu::~Menu()
 	{
 		this->children.clear();
+		this->Shutdown();
 	}
 
 	void Menu::_AddItem(const ValueList& args, KValueRef result)

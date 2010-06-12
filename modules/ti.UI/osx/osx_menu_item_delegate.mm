@@ -3,9 +3,10 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
+#import "osx_menu_item_delegate.h"
+
 @implementation OSXMenuItemDelegate
--(id)initWithMenuItem:(ti::OSXMenuItem*)inMenuItem
+-(id)initWithMenuItem:(ti::MenuItem*)inMenuItem
 {
 	if ([super init]) {
 		menuItem = inMenuItem;
@@ -24,7 +25,7 @@
 	menuItem->HandleClickEvent(NULL);
 }
 
--(ti::OSXMenuItem*)getMenuItem
+-(ti::MenuItem*)getMenuItem
 {
 	return menuItem;
 }

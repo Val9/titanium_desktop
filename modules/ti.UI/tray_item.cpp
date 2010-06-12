@@ -3,17 +3,21 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include <kroll/kroll.h>
-#include "ui_module.h"
+
+#include "tray_item.h"
 
 namespace ti
 {
-	TrayItem::TrayItem(std::string& iconURL) : 
+	TrayItem::TrayItem(std::string& iconURL, KMethodRef cb) : 
 		KEventObject("UI.TrayItem"),
+		menu(0),
 		iconURL(iconURL),
 		iconPath(URLUtils::URLToPath(iconURL)),
-		removed(false)
+		removed(false),
+		callback(cb)
 	{
+		this->Initialize();
+
 		this->SetMethod("setIcon", &TrayItem::_SetIcon);
 		this->SetMethod("getIcon", &TrayItem::_GetIcon);
 		this->SetMethod("setMenu", &TrayItem::_SetMenu);

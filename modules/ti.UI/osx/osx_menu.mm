@@ -3,8 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include <kroll/kroll.h>
-#include "../ui_module.h" 
+#include "../menu.h"
+#include "osx_menu_delegate.h"
 
 // The front offset accounts for the appplication and edit menus:w
 // The rear offset accounts for the window and help menus
@@ -15,12 +15,11 @@ namespace ti
 	using std::vector;
 	using std::string;
 
-	OSXMenu::OSXMenu() :
-		Menu()
+	void Menu::Initialize()
 	{
 	}
 
-	OSXMenu::~OSXMenu()
+	void Menu::Shutdown()
 	{
 		std::vector<NSMenu*>::iterator i = this->nativeMenus.begin();
 		while (i != this->nativeMenus.end()) {
@@ -29,33 +28,33 @@ namespace ti
 		nativeMenus.clear();
 	}
 
-	void OSXMenu::AppendItemImpl(AutoMenuItem item)
+	void Menu::AppendItemImpl(AutoMenuItem item)
 	{
 		this->UpdateNativeMenus();
 	}
 
-	void OSXMenu::InsertItemAtImpl(AutoMenuItem item, unsigned int index)
+	void Menu::InsertItemAtImpl(AutoMenuItem item, unsigned int index)
 	{
 		this->UpdateNativeMenus();
 	}
 
-	void OSXMenu::RemoveItemAtImpl(unsigned int index)
+	void Menu::RemoveItemAtImpl(unsigned int index)
 	{
 		this->UpdateNativeMenus();
 	}
 
-	void OSXMenu::ClearImpl()
+	void Menu::ClearImpl()
 	{
 		this->Clear();
 	}
 
-	void OSXMenu::Clear()
+	void Menu::Clear()
 	{
 		this->UpdateNativeMenus();
 	}
 
 	/*static*/
-	void OSXMenu::ClearNativeMenu(NSMenu* nativeMenu)
+	void Menu::ClearNativeMenu(NSMenu* nativeMenu)
 	{
 		SEL getMenuItemSelector = @selector(getMenuItem:);
 
@@ -64,17 +63,17 @@ namespace ti
 			NSMenuItem* nativeItem = [nativeMenu itemAtIndex: 0];
 			id delegate = [nativeItem target];
 
-			// This delegate is one of our OSXMenuItem delegates, so grab its
-			// OSXMenuItem reference and tell it to destroy this native menu item
+			// This delegate is one of our MenuItem delegates, so grab its
+			// MenuItem reference and tell it to destroy this native menu item
 			if (delegate && [delegate respondsToSelector:getMenuItemSelector]) {
-				OSXMenuItem* menuItem = (OSXMenuItem*) [delegate performSelector:getMenuItemSelector];
+				MenuItem* menuItem = (MenuItem*) [delegate performSelector:getMenuItemSelector];
 				menuItem->DestroyNative(nativeItem);
 			}
 			[nativeMenu removeItemAtIndex:0];
 		}
 	}
 
-	void OSXMenu::DestroyNative(NSMenu* nativeMenu)
+	void Menu::DestroyNative(NSMenu* nativeMenu)
 	{
 		// Remove the native menu from our list of known native menus
 		std::vector<NSMenu*>::iterator i = this->nativeMenus.begin();
@@ -91,23 +90,23 @@ namespace ti
 		[nativeMenu release];
 	}
 
-	void OSXMenu::UpdateNativeMenus()
+	void Menu::UpdateNativeMenus()
 	{
 		std::vector<NSMenu*>::iterator i = this->nativeMenus.begin();
 		while (i != this->nativeMenus.end()) {
-			OSXMenu::UpdateNativeMenu(*i++);
+			Menu::UpdateNativeMenu(*i++);
 		}
 
 		// If this native menu is the application's current main menu,
 		// we want to force the main menu to reload.
-		OSXUIBinding* binding = dynamic_cast<OSXUIBinding*>(UIBinding::GetInstance());
+		UIBinding* binding = UIBinding::GetInstance();
 		if (binding->GetActiveMenu().get() == this) {
 			binding->SetupMainMenu(true);
 		}
 	}
 
 	/*static*/
-	void OSXMenu::UpdateNativeMenu(NSMenu* nativeMenu)
+	void Menu::UpdateNativeMenu(NSMenu* nativeMenu)
 	{
 		// If this is the application's main menu, just wait until
 		// later to fix it -- it will modify the parent iterator.
@@ -120,19 +119,19 @@ namespace ti
 		}
 	}
 
-	NSMenu* OSXMenu::CreateNativeNow(bool registerNative)
+	NSMenu* Menu::CreateNativeNow(bool registerNative)
 	{
 		return this->CreateNative(false, registerNative);
 	}
 
-	NSMenu* OSXMenu::CreateNativeLazily(bool registerNative)
+	NSMenu* Menu::CreateNativeLazily(bool registerNative)
 	{
 		return this->CreateNative(true, registerNative);
 	}
 
-	NSMenu* OSXMenu::CreateNative(bool lazy, bool registerNative)
+	NSMenu* Menu::CreateNative(bool lazy, bool registerNative)
 	{
-		// This title should be set by the callee - see OSXMenuItem::NSMenuSetSubmenu
+		// This title should be set by the callee - see MenuItem::NSMenuSetSubmenu
 		NSMenu* menu = [[NSMenu alloc] initWithTitle:@"TopLevelMenu"];
 		OSXMenuDelegate* delegate = [[OSXMenuDelegate alloc] 
 			initWithMenu:this
@@ -153,31 +152,31 @@ namespace ti
 		return menu;
 	}
 
-	void OSXMenu::FillNativeMainMenu(NSMenu* defaultMenu, NSMenu* nativeMainMenu)
+	void Menu::FillNativeMainMenu(NSMenu* defaultMenu, NSMenu* nativeMainMenu)
 	{
 		// We are keeping a reference to this NSMenu*, so bump the reference
 		// count. This method must be matched with a DestroyNative(...) call
 		// to avoid a memory leak.
 		[nativeMainMenu retain];
 
-		OSXMenu::CopyMenu(defaultMenu, nativeMainMenu);
-		OSXMenu::SetupInspectorItem(nativeMainMenu);
+		Menu::CopyMenu(defaultMenu, nativeMainMenu);
+		Menu::SetupInspectorItem(nativeMainMenu);
 
 		this->AddChildrenToNativeMenu(nativeMainMenu, true, true);
 
 		// The main menu needs all NSMenuItems in it to have submenus for 
 		// proper display. So we just add empty submenus to those items missing them.
-		OSXMenu::EnsureAllItemsHaveSubmenus(nativeMainMenu);
+		Menu::EnsureAllItemsHaveSubmenus(nativeMainMenu);
 
 		this->nativeMenus.push_back(nativeMainMenu);
 	}
 
-	void OSXMenu::AddChildrenToNativeMenu(NSMenu* nativeMenu, bool registerNative, bool mainMenu)
+	void Menu::AddChildrenToNativeMenu(NSMenu* nativeMenu, bool registerNative, bool mainMenu)
 	{
 		vector<AutoMenuItem>::iterator i = this->children.begin();
 		while (i != this->children.end()) {
 			AutoMenuItem item = *i++;
-			AutoPtr<OSXMenuItem> osxItem = item.cast<OSXMenuItem>();
+			AutoPtr<MenuItem> osxItem = item.cast<MenuItem>();
 			NSMenuItem* nativeItem = osxItem->CreateNative(registerNative);
 
 			int rearOffset = mainMenu ?  MAINMENU_REAR_OFFSET : 0;
@@ -187,13 +186,13 @@ namespace ti
 		[nativeMenu sizeToFit];
 	}
 
-	void OSXMenu::AddChildrenToNSArray(NSMutableArray* array)
+	void Menu::AddChildrenToNSArray(NSMutableArray* array)
 	{
 		vector<AutoMenuItem>::iterator i = this->children.begin();
 		while (i != this->children.end())
 		{
 			AutoMenuItem item = *i++;
-			AutoPtr<OSXMenuItem> osxItem = item.cast<OSXMenuItem>();
+			AutoPtr<MenuItem> osxItem = item.cast<MenuItem>();
 			NSMenuItem* nsItem = osxItem->CreateNative(false);
 			[array addObject:nsItem];
 			[nsItem release];
@@ -201,19 +200,19 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenu::CopyMenu(NSMenu* from, NSMenu* to)
+	void Menu::CopyMenu(NSMenu* from, NSMenu* to)
 	{
 		[to setTitle:[from title]];
 		[to setAutoenablesItems:NO];
 		for (int i = 0; i < [from numberOfItems]; i++)
 		{
-			NSMenuItem* duplicateItem = OSXMenu::CopyMenuItem([from itemAtIndex:i]);
+			NSMenuItem* duplicateItem = Menu::CopyMenuItem([from itemAtIndex:i]);
 			[to addItem:duplicateItem];
 		}
 	}
 
 	/*static*/
-	NSMenuItem* OSXMenu::CopyMenuItem(NSMenuItem* item)
+	NSMenuItem* Menu::CopyMenuItem(NSMenuItem* item)
 	{
 		if ([item isSeparatorItem])
 		{
@@ -233,7 +232,7 @@ namespace ti
 			if ([item submenu] != nil)
 			{
 				NSMenu* newSubmenu = [[NSMenu alloc] init];
-				OSXMenu::CopyMenu([item submenu], newSubmenu);
+				Menu::CopyMenu([item submenu], newSubmenu);
 				[duplicate setSubmenu:newSubmenu];
 				[newSubmenu release];
 			}
@@ -243,7 +242,7 @@ namespace ti
 	}
 
 	/*static*/
-	bool OSXMenu::IsNativeMenuAMainMenu(NSMenu* menu)
+	bool Menu::IsNativeMenuAMainMenu(NSMenu* menu)
 	{
 		return ([menu numberOfItems] > 0 &&
 			([[[[menu itemAtIndex:0] submenu] title] isEqualToString:@"Apple"]
@@ -251,7 +250,7 @@ namespace ti
 	}
 
 	/*static*/
-	NSMenu* OSXMenu::GetWindowMenu(NSMenu* menu)
+	NSMenu* Menu::GetWindowMenu(NSMenu* menu)
 	{
 		if (IsNativeMenuAMainMenu(menu))
 		{
@@ -264,7 +263,7 @@ namespace ti
 	}
 
 	/*static*/
-	NSMenu* OSXMenu::GetAppleMenu(NSMenu* menu)
+	NSMenu* Menu::GetAppleMenu(NSMenu* menu)
 	{
 		if (IsNativeMenuAMainMenu(menu))
 		{
@@ -277,7 +276,7 @@ namespace ti
 	}
 
 	/*static*/
-	NSMenu* OSXMenu::GetServicesMenu(NSMenu* menu)
+	NSMenu* Menu::GetServicesMenu(NSMenu* menu)
 	{
 		if (!IsNativeMenuAMainMenu(menu))
 		{
@@ -302,7 +301,7 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenu::EnsureAllItemsHaveSubmenus(NSMenu* menu)
+	void Menu::EnsureAllItemsHaveSubmenus(NSMenu* menu)
 	{
 		for (int i = 0; i < [menu numberOfItems]; i++)
 		{
@@ -317,9 +316,9 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenu::FixWindowMenu(NSMenu* menu)
+	void Menu::FixWindowMenu(NSMenu* menu)
 	{
-		NSMenu* windowMenu = OSXMenu::GetWindowMenu(menu);
+		NSMenu* windowMenu = Menu::GetWindowMenu(menu);
 		if (windowMenu == nil)
 		{
 			return;
@@ -346,9 +345,9 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenu::SetupInspectorItem(NSMenu* menu)
+	void Menu::SetupInspectorItem(NSMenu* menu)
 	{
-		NSMenu* windowMenu = OSXMenu::GetWindowMenu(menu);
+		NSMenu* windowMenu = Menu::GetWindowMenu(menu);
 		NSMenuItem* showInspector = [windowMenu
 			itemWithTitle:NSLocalizedString(@"Show Inspector", @"")];
 		NSMenuItem* showInspectorSeparator = [windowMenu
@@ -364,7 +363,7 @@ namespace ti
 	}
 
 	/*static*/
-	void OSXMenu::ReplaceAppNameStandinInMenu(NSMenu* menu, NSString* appName)
+	void Menu::ReplaceAppNameStandinInMenu(NSMenu* menu, NSString* appName)
 	{
 		static NSString* appNameStandin = @"APPNAME";
 

@@ -3,9 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
+#include "menu_item.h"
 
-#include <kroll/kroll.h>
-#include "ui_module.h"
 namespace ti
 {
 	using std::string;
@@ -269,8 +268,7 @@ namespace ti
 	{
 		if (this->submenu.isNull())
 		{
-			UIBinding* binding = UIBinding::GetInstance();
-			AutoMenu newSubmenu = binding->CreateMenu();
+			AutoMenu newSubmenu = new Menu();
 			this->SetSubmenuImpl(newSubmenu);
 			this->submenu = newSubmenu;
 		}

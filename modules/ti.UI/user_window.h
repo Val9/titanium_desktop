@@ -10,10 +10,15 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <kroll/kroll.h>
 
 #ifdef OS_WIN32
 #undef CreateWindow
+#endif
+
+#include "ui_module.h"
+
+#ifdef OS_OSX
+#include "osx/native_window.h"
 #endif
 
 #include "../ti.App/app_config.h"
@@ -34,7 +39,9 @@ namespace ti
 			// Platform-specific implementation.
 			static AutoUserWindow CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent);
 
-			virtual SharedString DisplayString(int levels=3);
+			void Open();
+			bool Close();
+			SharedString DisplayString(int levels=3);
 			virtual ~UserWindow();
 			void UpdateWindowForURL(std::string url);
 			void RegisterJSContext(JSGlobalContextRef);
@@ -131,89 +138,99 @@ namespace ti
 			void _OpenSaveAsDialog(const ValueList& args, KValueRef result);
 			void _IsTopMost(const kroll::ValueList&, kroll::KValueRef);
 			void _SetTopMost(const kroll::ValueList&, kroll::KValueRef);
-			virtual void _ShowInspector(const ValueList& args, KValueRef result);
+			void _ShowInspector(const ValueList& args, KValueRef result);
 			void _SetContents(const ValueList& args, KValueRef result);
 			void SetContents(const std::string& content, const std::string& baseURL);
-			virtual void OpenFileChooserDialog(KMethodRef callback, bool multiple,
+			void OpenFileChooserDialog(KMethodRef callback, bool multiple,
 				std::string& title, std::string& path, std::string& defaultName,
-				std::vector<std::string>& types, std::string& typesDescription) = 0;
-			virtual void OpenFolderChooserDialog( KMethodRef callback,
+				std::vector<std::string>& types, std::string& typesDescription);
+			void OpenFolderChooserDialog( KMethodRef callback,
 				bool multiple, std::string& title, std::string& path,
-				std::string& defaultName) = 0;
-			virtual void OpenSaveAsDialog(KMethodRef callback, std::string& title,
+				std::string& defaultName);
+			void OpenSaveAsDialog(KMethodRef callback, std::string& title,
 				std::string& path, std::string& defaultName,
-				std::vector<std::string>& types, std::string& typesDescription) = 0;
+				std::vector<std::string>& types, std::string& typesDescription);
 
-			// TODO: make these methods non-virtual
-			virtual void Hide() = 0;
-			virtual void Show() = 0;
-			virtual void Minimize() = 0;
-			virtual void Maximize() = 0;
-			virtual void Unminimize() = 0;
-			virtual void Unmaximize() = 0;
-			virtual bool IsMaximized() = 0;
-			virtual bool IsMinimized() = 0;
-			virtual void Focus() = 0;
-			virtual void Unfocus() = 0;
-			virtual bool IsUsingChrome() = 0;
-			virtual bool IsUsingScrollbars() = 0;
-			virtual bool IsFullscreen() = 0;
-			virtual void Open();
-			virtual bool Close();
+			// Platform implementations
+			void Cleanup();
+			void Hide();
+			void Show();
+			void Minimize();
+			void Maximize();
+			void Unminimize();
+			void Unmaximize();
+			bool IsMaximized();
+			bool IsMinimized();
+			void Focus();
+			void Unfocus();
+			bool IsUsingChrome();
+			bool IsUsingScrollbars();
+			bool IsFullscreen();
+			void OpenImpl();
+			bool CloseImpl();
 			void Closed();
-			virtual double GetX() = 0;
-			virtual void SetX(double x) = 0;
-			virtual double GetY() = 0;
-			virtual void SetY(double y) = 0;
-			virtual void MoveTo(double x, double y) = 0;
-
-			virtual double GetWidth() = 0;
-			virtual void SetWidth(double width) = 0;
-			virtual double GetMaxWidth() = 0;
-			virtual void SetMaxWidth(double width) = 0;
-			virtual double GetMinWidth() = 0;
-			virtual void SetMinWidth(double width) = 0;
-			virtual double GetHeight() = 0;
-			virtual void SetHeight(double height) = 0;
-			virtual double GetMaxHeight() = 0;
-			virtual void SetMaxHeight(double height) = 0;
-			virtual double GetMinHeight() = 0;
-			virtual void SetMinHeight(double height) = 0;
-			virtual Bounds GetBounds();
-			virtual Bounds GetBoundsImpl() = 0;
+			double GetX();
+			void SetX(double x);
+			double GetY();
+			void SetY(double y);
+			void MoveTo(double x, double y);
+			double GetWidth();
+			void SetWidth(double width);
+			double GetMaxWidth();
+			void SetMaxWidth(double width);
+			double GetMinWidth();
+			void SetMinWidth(double width);
+			double GetHeight();
+			void SetHeight(double height);
+			double GetMaxHeight();
+			void SetMaxHeight(double height);
+			double GetMinHeight();
+			void SetMinHeight(double height);
+			Bounds GetBounds();
+			Bounds GetBoundsImpl();
 			void SetBounds(Bounds bounds);
-			virtual void SetBoundsImpl(Bounds bounds) = 0;
-			virtual std::string GetTitle() = 0;
-			virtual void SetTitle(const std::string& title);
-			virtual void SetTitleImpl(const std::string& title) = 0;
-			virtual std::string GetURL() = 0;
-			virtual void SetURL(std::string &url) = 0;
-			virtual bool IsResizable() = 0;
-			virtual void SetResizable(bool resizable);
-			virtual void SetResizableImpl(bool resizable) = 0;
-			virtual bool IsMaximizable() = 0;
-			virtual void SetMaximizable(bool maximizable) = 0;
-			virtual bool IsMinimizable() = 0;
-			virtual void SetMinimizable(bool minimizable) = 0;
-			virtual bool IsCloseable() = 0;
-			virtual void SetCloseable(bool closeable) = 0;
-			virtual bool IsVisible() = 0;
-			virtual double GetTransparency() = 0;
-			virtual void SetTransparency(double transparency) = 0;
-			virtual void SetFullscreen(bool fullscreen) = 0;
-			virtual void SetUsingChrome(bool chrome) = 0;
-			virtual void SetMenu(AutoMenu menu) = 0;
-			virtual AutoMenu GetMenu() = 0;
-			virtual void SetContextMenu(AutoMenu menu) = 0;
-			virtual AutoMenu GetContextMenu() = 0;
-			virtual void SetIcon(std::string& iconPath) = 0;
-			virtual std::string& GetIcon() = 0;
-			virtual bool IsTopMost() = 0;
-			virtual void SetTopMost(bool topmost) = 0;
-			virtual void ShowInspector(bool console=false) = 0;
-			virtual void AppIconChanged() {};
-			virtual void AppMenuChanged() {};
-			virtual void SetContentsImpl(const std::string& content,  const std::string& baseURL) = 0;
+			void SetBoundsImpl(Bounds bounds);
+			std::string GetTitle();
+			void SetTitle(const std::string& title);
+			void SetTitleImpl(const std::string& title);
+			std::string GetURL();
+			void SetURL(std::string &url);
+			bool IsResizable();
+			void SetResizable(bool resizable);
+			void SetResizableImpl(bool resizable);
+			bool IsMaximizable();
+			void SetMaximizable(bool maximizable);
+			bool IsMinimizable();
+			void SetMinimizable(bool minimizable);
+			bool IsCloseable();
+			void SetCloseable(bool closeable);
+			bool IsVisible();
+			double GetTransparency();
+            void SetTransparency(double transparency);
+			void SetFullscreen(bool fullscreen);
+			void SetUsingChrome(bool chrome);
+			void SetMenu(AutoMenu menu);
+			AutoMenu GetMenu();
+			void SetContextMenu(AutoMenu menu);
+			AutoMenu GetContextMenu();
+			void SetIcon(std::string& iconPath);
+			std::string& GetIcon();
+			bool IsTopMost();
+			void SetTopMost(bool topmost);
+			void ShowInspector(bool console=false);
+			void AppIconChanged() {};
+			void AppMenuChanged() {};
+			void SetContentsImpl(const std::string& content,  const std::string& baseURL);
+
+#ifdef OS_OSX
+			NativeWindow* GetNative() { return nativeWindow; }
+			void Focused();
+			void Unfocused();
+			void ReconfigureWindowConstraints();
+			void OpenChooserDialog(bool files, KMethodRef callback, bool multiple,
+				std::string& title, std::string& path, std::string& defaultName,
+				std::vector<std::string>& types, std::string& typesDescription);
+#endif
 
 		protected:
 			Logger* logger;
@@ -237,6 +254,21 @@ namespace ti
 			static void LoadUIJavaScript(JSGlobalContextRef context);
 
 		private:
+#ifdef OS_OSX
+			NativeWindow* nativeWindow;
+			unsigned int nativeWindowMask;
+			bool focused;
+			static bool initial;
+			std::string iconPath;
+
+			NSRect CalculateWindowFrame(double x, double y,
+				double width, double height);
+			NSScreen* GetWindowScreen();
+#endif
+
+			AutoMenu menu;
+			AutoMenu contextMenu;
+
 			DISALLOW_EVIL_CONSTRUCTORS(UserWindow);
 	};
 }

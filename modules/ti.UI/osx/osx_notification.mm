@@ -5,6 +5,7 @@
  */
 
 #include "../notification.h"
+
 #include <Foundation/Foundation.h>
 #include <Cocoa/Cocoa.h>
 #include <Growl/GrowlApplicationBridge.h>

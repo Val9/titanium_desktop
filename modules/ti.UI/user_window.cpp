@@ -3,7 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#include "ui_module.h"
+#include "user_window.h"
+
 #include <kroll/javascript/javascript_module_instance.h>
 
 namespace ti
@@ -17,7 +18,13 @@ UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 	config(config),
 	parent(parent),
 	active(false),
-	initialized(false)
+	initialized(false),
+#ifdef OS_OSX
+	nativeWindow(0),
+	nativeWindowMask(0),
+#endif
+	menu(0),
+	contextMenu(0)
 {
 	// This method is on Titanium.UI, but will be delegated to this class.
 	this->SetMethod("getCurrentWindow", &UserWindow::_GetCurrentWindow);
@@ -106,10 +113,7 @@ UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 
 UserWindow::~UserWindow()
 {
-	if (this->active)
-	{
-		this->Close();
-	}
+	this->Cleanup();
 }
 
 SharedString UserWindow::DisplayString(int level)
@@ -138,6 +142,7 @@ static double Constrain(double value, double min, double max)
 void UserWindow::Open()
 {
 	this->FireEvent(Event::OPEN);
+	this->OpenImpl();
 
 	// We are now in the UI binding's open window list
 	this->binding->AddToOpenWindows(AutoUserWindow(this, true));
@@ -160,6 +165,9 @@ void UserWindow::Open()
 
 bool UserWindow::Close()
 {
+	if(!this->active)
+		return false;
+
 	// If FireEvent returns true, stopPropagation or preventDefault
 	// was not called on the event -- and we should continue closing
 	// the window. Otherwise, we want to cancel the close.
@@ -169,7 +177,7 @@ bool UserWindow::Close()
 		this->active = false; // Prevent further modification.
 	}
 
-	return !this->active;
+	return this->CloseImpl();
 }
 
 void UserWindow::Closed()

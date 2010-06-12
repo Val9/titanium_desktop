@@ -12,6 +12,10 @@
 #import <WebKit/WebScriptObject.h>
 #import <WebKit/WebPreferencesPrivate.h>
 
+#import <WebKit/WebFramePrivate.h>
+#import <WebKit/WebPreferenceKeysPrivate.h>
+
+
 @class NativeWindow;
 @interface WebViewDelegate : NSObject
 {
