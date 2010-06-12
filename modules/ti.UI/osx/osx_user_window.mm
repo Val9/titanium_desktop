@@ -7,7 +7,6 @@
 
 namespace ti
 {
-	/* TODO: can we kill this code off?
 	static unsigned int toWindowMask(AutoPtr<WindowConfig> config)
 	{
 		unsigned int mask = 0;
@@ -25,7 +24,7 @@ namespace ti
 		}
 
 		return mask;
-	}*/
+	}
 
 	AutoUserWindow UserWindow::CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent)
 	{
@@ -34,6 +33,8 @@ namespace ti
 
 	void UserWindow::OpenImpl()
 	{
+		nativeWindowMask = toWindowMask(this->config);
+
 		NSRect frame;
 		if (!config->IsFullscreen())
 		{
