@@ -3,32 +3,34 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
+
+#include "../tray_item.h"
+#include "../ui_binding.h"
 
 namespace ti
 {
-	std::vector<AutoPtr<Win32TrayItem> > Win32TrayItem::trayItems;
-	UINT Win32TrayItem::trayClickedMessage =
+	std::vector<AutoTrayItem> TrayItem::trayItems;
+	UINT TrayItem::trayClickedMessage =
 		::RegisterWindowMessageA(PRODUCT_NAME"TrayClicked");
 
-	Win32TrayItem::Win32TrayItem(std::string& iconURL, KMethodRef cbSingleClick) :
-		TrayItem(iconURL),
-		oldNativeMenu(0),
-		trayIconData(0)
+	void TrayItem::Initialize()
 	{
-		this->AddEventListener(Event::CLICKED, cbSingleClick);
+		this->oldNativeMenu = 0;
+		this->trayIconData = 0;
+
+		this->AddEventListener(Event::CLICKED, this->callback);
 
 		HWND hwnd = Host::GetInstance()->AddMessageHandler(
-			&Win32TrayItem::MessageHandler);
+			&TrayItem::MessageHandler);
 
 		NOTIFYICONDATA* notifyIconData = new NOTIFYICONDATA;
 		notifyIconData->cbSize = sizeof(NOTIFYICONDATA);
 		notifyIconData->hWnd = hwnd;
-		notifyIconData->uID = ++Win32UIBinding::nextItemId;
+		notifyIconData->uID = ++UIBinding::nextItemId;
 		notifyIconData->uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 		notifyIconData->uCallbackMessage = trayClickedMessage;
 
-		HICON icon = Win32UIBinding::LoadImageAsIcon(iconPath,
+		HICON icon = UIBinding::LoadImageAsIcon(iconPath,
 			GetSystemMetrics(SM_CXSMICON),
 			GetSystemMetrics(SM_CYSMICON));
 		notifyIconData->hIcon = icon;
@@ -40,29 +42,29 @@ namespace ti
 		trayItems.push_back(this);
 	}
 	
-	Win32TrayItem::~Win32TrayItem()
+	void TrayItem::Shutdown()
 	{
 		this->Remove();
 	}
 	
-	void Win32TrayItem::SetIcon(std::string& iconPath)
+	void TrayItem::SetIcon(std::string& iconPath)
 	{
 		if (!this->trayIconData)
 			return;
 
-		HICON icon = Win32UIBinding::LoadImageAsIcon(iconPath,
+		HICON icon = UIBinding::LoadImageAsIcon(iconPath,
 			GetSystemMetrics(SM_CXSMICON),
 			GetSystemMetrics(SM_CYSMICON));
 		this->trayIconData->hIcon = icon;
 		Shell_NotifyIcon(NIM_MODIFY, this->trayIconData);
 	}
 	
-	void Win32TrayItem::SetMenu(AutoMenu menu)
+	void TrayItem::SetMenu(AutoMenu menu)
 	{
 		this->menu = menu;
 	}
 	
-	void Win32TrayItem::SetHint(std::string& hint)
+	void TrayItem::SetHint(std::string& hint)
 	{
 		if (this->trayIconData)
 		{
@@ -77,7 +79,7 @@ namespace ti
 		}
 	}
 	
-	void Win32TrayItem::Remove()
+	void TrayItem::Remove()
 	{
 		if (this->trayIconData)
 		{
@@ -86,7 +88,7 @@ namespace ti
 		}
 	}
 
-	void Win32TrayItem::HandleRightClick()
+	void TrayItem::HandleRightClick()
 	{
 		if (this->oldNativeMenu)
 		{
@@ -97,7 +99,7 @@ namespace ti
 		if (this->menu.isNull())
 			return;
 
-		AutoPtr<Win32Menu> win32menu = this->menu.cast<Win32Menu>();
+		AutoMenu win32menu = this->menu;
 		if (win32menu.isNull())
 			return;
 
@@ -111,7 +113,7 @@ namespace ti
 		PostMessage(this->trayIconData->hWnd, WM_NULL, 0, 0);
 	}
 
-	void Win32TrayItem::HandleLeftClick()
+	void TrayItem::HandleLeftClick()
 	{
 		try
 		{
@@ -119,13 +121,13 @@ namespace ti
 		}
 		catch (ValueException& e)
 		{
-			Logger* logger = Logger::Get("UI.Win32TrayItem");
+			Logger* logger = Logger::Get("UI.TrayItem");
 			SharedString ss = e.DisplayString();
 			logger->Error("Tray icon single click callback failed: %s", ss->c_str());
 		}
 	}
 	
-	void Win32TrayItem::HandleDoubleLeftClick()
+	void TrayItem::HandleDoubleLeftClick()
 	{
 		try
 		{
@@ -133,19 +135,19 @@ namespace ti
 		}
 		catch (ValueException& e)
 		{
-			Logger* logger = Logger::Get("UI.Win32TrayItem");
+			Logger* logger = Logger::Get("UI.TrayItem");
 			SharedString ss = e.DisplayString();
 			logger->Error("Tray icon double left click callback failed: %s", ss->c_str());
 		}
 	}
 	
-	UINT Win32TrayItem::GetId()
+	UINT TrayItem::GetId()
 	{
 		return this->trayIconData->uID;
 	}
 
 	/*static*/
-	bool Win32TrayItem::MessageHandler(
+	bool TrayItem::MessageHandler(
 		HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		if (message == trayClickedMessage)
@@ -156,7 +158,7 @@ namespace ti
 
 			for (size_t i = 0; i < trayItems.size(); i++)
 			{
-				AutoPtr<Win32TrayItem> item = trayItems[i];
+				AutoTrayItem item = trayItems[i];
 
 				item->is_double_clicked = false;
 				if(item->GetId() == id && button == WM_LBUTTONDBLCLK)
@@ -183,7 +185,7 @@ namespace ti
 		{
 			HMENU nativeMenu = (HMENU) lParam;
 			UINT position = (UINT) wParam;
-			return Win32MenuItem::HandleClickEvent(nativeMenu, position);
+			return MenuItem::HandleClickEvent(nativeMenu, position);
 		}
 		else
 		{
@@ -193,7 +195,7 @@ namespace ti
 	}
 	
 	/*static*/
-	LRESULT CALLBACK Win32TrayItem::DoubleClickTimerProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CALLBACK TrayItem::DoubleClickTimerProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		int id = LOWORD(wParam);
 		bool handled = false;
@@ -201,7 +203,7 @@ namespace ti
 		KillTimer(hWnd, 100);
 		for (size_t i = 0; i < trayItems.size(); i++)
 		{
-			AutoPtr<Win32TrayItem> item = trayItems[i];
+			AutoTrayItem item = trayItems[i];
 			if (!(item->is_double_clicked))
 			{
 				item->HandleLeftClick();

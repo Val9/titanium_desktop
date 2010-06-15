@@ -5,14 +5,16 @@
  */
 #ifndef _TI_WEB_KIT_POLICY_DELEGATE_H_
 #define _TI_WEB_KIT_POLICY_DELEGATE_H_
-#include <windows.h>
+
+#include "../ui.h"
+
 namespace ti {
 
-class Win32UserWindow;
+class UserWindow;
 
 class Win32WebKitPolicyDelegate : public IWebPolicyDelegate {
 public:
-	Win32WebKitPolicyDelegate(Win32UserWindow *window_);
+	Win32WebKitPolicyDelegate(UserWindow *window_);
 
 	// These function declarations copied from WebKit source (PolicyDelegate.cpp)
 
@@ -53,7 +55,7 @@ public:
 
 private:
 	ULONG m_refCount;
-	Win32UserWindow *window;
+	UserWindow *window;
 	bool m_permissiveDelegate;
 };
 

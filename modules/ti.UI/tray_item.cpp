@@ -6,6 +6,8 @@
 
 #include "tray_item.h"
 
+#include "ui_binding.h"
+
 namespace ti
 {
 	TrayItem::TrayItem(std::string& iconURL, KMethodRef cb) : 

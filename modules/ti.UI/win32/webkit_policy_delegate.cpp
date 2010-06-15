@@ -3,13 +3,13 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
-#include <shellapi.h>
-#include <string>
+
+#include "webkit_policy_delegate.h"
+#include "../user_window.h"
 
 namespace ti
 {
-	Win32WebKitPolicyDelegate::Win32WebKitPolicyDelegate(Win32UserWindow *window_)
+	Win32WebKitPolicyDelegate::Win32WebKitPolicyDelegate(UserWindow *window_)
 		: window(window_), m_refCount(1), m_permissiveDelegate(false)
 	{
 	}

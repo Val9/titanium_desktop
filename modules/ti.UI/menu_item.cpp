@@ -5,6 +5,8 @@
  */
 #include "menu_item.h"
 
+#include "ui_binding.h"
+
 namespace ti
 {
 	using std::string;
@@ -12,6 +14,10 @@ namespace ti
 
 	MenuItem::MenuItem(MenuItemType type) :
 		KEventObject("UI.MenuItem"),
+#ifdef OS_WIN32
+		oldSubmenu(0),
+		wideOldLabel(::UTF8ToWide(label)),
+#endif
 		type(type),
 		enabled(true),
 		label(""),

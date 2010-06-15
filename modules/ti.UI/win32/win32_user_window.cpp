@@ -2,13 +2,15 @@
  * SEE LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
+#include "../user_window.h"
+#include "../ui_binding.h"
+
 #include <sstream>
 #include <cmath>
 
 #define SetFlag(x,flag,b) ((b) ? x |= flag : x &= ~flag)
 #define UnsetFlag(x,flag) (x &= ~flag)=
-#define USERWINDOW_WINDOW_CLASS L"Win32UserWindow"
+#define USERWINDOW_WINDOW_CLASS L"UserWindow"
 #define MEANING_OF_LIFE 42
 #define MAX_FILE_DIALOG_STRING 1024
 
@@ -30,7 +32,7 @@ static void* GetWindowUserData(HWND hWnd)
 
 static void HandleHResultError(std::string message, HRESULT result, bool fatal=false)
 {
-	static Logger* logger = Logger::Get("UI.Win32UserWindow");
+	static Logger* logger = Logger::Get("UI.UserWindow");
 
 	message.append(": ");
 	switch (result)
@@ -61,7 +63,7 @@ static void HandleHResultError(std::string message, HRESULT result, bool fatal=f
 	}
 
 	logger->Error(message);
-	Win32UIBinding::ErrorDialog(message);
+	UIBinding::ErrorDialog(message);
 	if (fatal)
 		exit(1);
 	else
@@ -70,7 +72,7 @@ static void HandleHResultError(std::string message, HRESULT result, bool fatal=f
 
 static LRESULT CALLBACK UserWindowWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	Win32UserWindow* window = Win32UserWindow::FromWindow(hWnd);
+	UserWindow* window = UserWindow::FromWindow(hWnd);
 	if (!window)
 		return DefWindowProc(hWnd, message, wParam, lParam);
 
@@ -164,7 +166,7 @@ static LRESULT CALLBACK UserWindowWndProc(HWND hWnd, UINT message, WPARAM wParam
 			}
 			else
 			{
-				handled = Win32MenuItem::HandleClickEvent(nativeMenu, position);
+				handled = MenuItem::HandleClickEvent(nativeMenu, position);
 			}
 		}
 		break;
@@ -199,26 +201,35 @@ static void RegisterWindowClass()
 		ATOM result = RegisterClassExW(&wcex);
 		if (result == NULL)
 		{
-			Logger::Get("UI.Win32UserWindow")->Error("Error Registering Window Class: %d", GetLastError());
+			Logger::Get("UI.UserWindow")->Error("Error Registering Window Class: %d", GetLastError());
 		}
 
 		classInitialized = true;
 	}
 }
 
-/*static*/
-Win32UserWindow* Win32UserWindow::FromWindow(HWND hWnd)
+void UserWindow::Cleanup()
 {
-	return reinterpret_cast<Win32UserWindow*>(GetWindowUserData(hWnd));
+	if (webView)
+		webView->Release();
+
+	if (mainFrame)
+		mainFrame->Release();
 }
 
 /*static*/
-AutoPtr<Win32UserWindow> Win32UserWindow::FromWebView(IWebView* webView)
+UserWindow* UserWindow::FromWindow(HWND hWnd)
+{
+	return reinterpret_cast<UserWindow*>(GetWindowUserData(hWnd));
+}
+
+/*static*/
+AutoUserWindow UserWindow::FromWebView(IWebView* webView)
 {
 	std::vector<AutoUserWindow>& openWindows(UIBinding::GetInstance()->GetOpenWindows());
 	for (size_t i = 0; i < openWindows.size(); i++)
 	{
-		AutoPtr<Win32UserWindow> userWindow(openWindows.at(i).cast<Win32UserWindow>());
+		AutoUserWindow userWindow(openWindows.at(i));
 		if (userWindow->webView == webView)
 		{
 			return userWindow;
@@ -228,7 +239,7 @@ AutoPtr<Win32UserWindow> Win32UserWindow::FromWebView(IWebView* webView)
 }
 
 
-DWORD Win32UserWindow::GetStyleFromConfig()
+DWORD UserWindow::GetStyleFromConfig()
 {
 	DWORD style = WS_EX_APPWINDOW;
 	if (config->IsToolWindow())
@@ -240,7 +251,7 @@ DWORD Win32UserWindow::GetStyleFromConfig()
 	return style;
 }
 
-void Win32UserWindow::InitWindow()
+void UserWindow::InitWindow()
 {
 	RegisterWindowClass();
 	std::wstring titleW = ::UTF8ToWide(config->GetTitle());
@@ -259,7 +270,7 @@ void Win32UserWindow::InitWindow()
 	this->SetTransparency(config->GetTransparency());
 }
 
-void Win32UserWindow::InitWebKit()
+void UserWindow::InitWebKit()
 {
 	HRESULT hr = WebKitCreateInstance(CLSID_WebView, 0, IID_IWebView,
 		(void**) &(this->webView));
@@ -402,43 +413,9 @@ static void GetChromeSize(Bounds& chromeSize, DWORD windowStyle)
 	chromeSize.height = rect.bottom - rect.top - 100;
 }
 
-Win32UserWindow::Win32UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow& parent) :
-	UserWindow(config, parent),
-	frameLoadDelegate(0),
-	uiDelegate(0),
-	policyDelegate(0),
-	resourceLoadDelegate(0),
-	restoreStyles(0),
-	windowHandle(0),
-	viewWindowHandle(0),
-	webkitBitmap(0),
-	timer(0),
-	webView(0),
-	mainFrame(0),
-	webInspector(0),
-	requiresDisplay(true),
-	menu(0),
-	activeMenu(0),
-	nativeMenu(0),
-	contextMenu(0),
-	iconPath("")
-{
-	logger = Logger::Get("UI.Win32UserWindow");
-}
-
 AutoUserWindow UserWindow::CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent)
 {
-	return new Win32UserWindow(config, parent);
-}
-
-Win32UserWindow::~Win32UserWindow()
-{
-
-	if (webView)
-		webView->Release();
-
-	if (mainFrame)
-		mainFrame->Release();
+	return new UserWindow(config, parent);
 }
 
 typedef struct DrawChildWindowData_
@@ -483,7 +460,7 @@ static BOOL CALLBACK DrawChildWindow(HWND hWnd, LPARAM lParam)
 	return TRUE;
 }
 
-void Win32UserWindow::UpdateBitmap()
+void UserWindow::UpdateBitmap()
 {
 	if (!this->HasTransparentBackground())
 		return;
@@ -531,7 +508,7 @@ void Win32UserWindow::UpdateBitmap()
 	ReleaseDC(NULL, hdcScreen);
 }
 
-void Win32UserWindow::ResizeSubViews()
+void UserWindow::ResizeSubViews()
 {
 	if (this->HasTransparentBackground() || !viewWindowHandle)
 		return;
@@ -541,17 +518,17 @@ void Win32UserWindow::ResizeSubViews()
 	MoveWindow(viewWindowHandle, rcClient.left, rcClient.top, rcClient.right, rcClient.bottom, TRUE);
 }
 
-HWND Win32UserWindow::GetWindowHandle()
+HWND UserWindow::GetWindowHandle()
 {
 	return this->windowHandle;
 }
 
-void Win32UserWindow::Hide()
+void UserWindow::Hide()
 {
 	ShowWindow(windowHandle, SW_HIDE);
 }
 
-void Win32UserWindow::Show()
+void UserWindow::Show()
 {
 	if (requiresDisplay)
 	{
@@ -587,17 +564,17 @@ void Win32UserWindow::Show()
 	}
 }
 
-void Win32UserWindow::Minimize()
+void UserWindow::Minimize()
 {
 	ShowWindow(windowHandle, SW_MINIMIZE);
 }
 
-void Win32UserWindow::Unminimize()
+void UserWindow::Unminimize()
 {
 	ShowWindow(windowHandle, SW_RESTORE);
 }
 
-bool Win32UserWindow::IsMinimized()
+bool UserWindow::IsMinimized()
 {
 	if (!requiresDisplay)
 		return IsIconic(windowHandle) != 0;
@@ -605,17 +582,17 @@ bool Win32UserWindow::IsMinimized()
 		return config->IsMinimized();
 }
 
-void Win32UserWindow::Maximize()
+void UserWindow::Maximize()
 {
 	ShowWindow(windowHandle, SW_MAXIMIZE);
 }
 
-void Win32UserWindow::Unmaximize()
+void UserWindow::Unmaximize()
 {
 	ShowWindow(windowHandle, SW_RESTORE);
 }
 
-bool Win32UserWindow::IsMaximized()
+bool UserWindow::IsMaximized()
 {
 	if (!requiresDisplay)
 		return IsZoomed(windowHandle) != 0;
@@ -623,13 +600,13 @@ bool Win32UserWindow::IsMaximized()
 		return config->IsMaximized();
 }
 
-void Win32UserWindow::Focus()
+void UserWindow::Focus()
 {
 	if (viewWindowHandle && HasTransparentBackground())
 		SetFocus(viewWindowHandle);
 }
 
-void Win32UserWindow::Unfocus()
+void UserWindow::Unfocus()
 {
 	// SetFocus sends a WM_KILLFOCUS message to the window that has focus.
 	// By sending NULL, we basically turn off keystrokes to window that had focus.
@@ -640,31 +617,69 @@ void Win32UserWindow::Unfocus()
 	}
 }
 
-void Win32UserWindow::Open()
+bool UserWindow::IsResizable()
+{
+	return config->IsResizable();
+}
+
+bool UserWindow::IsMaximizable()
+{
+	return config->IsMaximizable();
+}
+
+bool UserWindow::IsMinimizable()
+{
+	return config->IsMinimizable();
+}
+
+bool UserWindow::IsCloseable()
+{
+	return config->IsCloseable();
+}
+
+double UserWindow::GetTransparency()
+{
+	return config->GetTransparency();
+}
+
+bool UserWindow::IsUsingChrome()
+{
+	return config->IsUsingChrome();
+}
+
+bool UserWindow::IsFullscreen()
+{
+	return config->IsFullscreen();
+}
+
+std::string UserWindow::GetTitle()
+{
+	return config->GetTitle();
+}
+
+std::string UserWindow::GetURL()
+{
+	return config->GetURL();
+}
+
+void UserWindow::OpenImpl()
 {
 	this->InitWindow();
 	this->SetupDecorations();
 	this->InitWebKit();
 	this->SetupIcon();
-
-	UserWindow::Open();
 	this->SetupFrame();
 
 	FireEvent(Event::OPENED);
 }
 
-bool Win32UserWindow::Close()
+bool UserWindow::CloseImpl()
 {
 	// Hold a reference here so we can still get the value of
 	// this->timer and this->active even after calling ::Closed
 	// which will remove us from the open window list and decrement
 	// the reference count.
 	AutoUserWindow keep(this, true);
-
-	if (!this->active)
-		return false;
-
-	UserWindow::Close();
 
 	// If the window is still active at this point, it
 	// indicates an event listener has cancelled this close event.
@@ -682,92 +697,92 @@ bool Win32UserWindow::Close()
 	return !this->active;
 }
 
-double Win32UserWindow::GetX()
+double UserWindow::GetX()
 {
 	return GetBounds().x;
 }
 
-void Win32UserWindow::SetX(double x)
+void UserWindow::SetX(double x)
 {
 	this->SetupFrame();
 }
 
-double Win32UserWindow::GetY()
+double UserWindow::GetY()
 {
 	return GetBounds().y;
 }
 
-void Win32UserWindow::SetY(double y)
+void UserWindow::SetY(double y)
 {
 	this->SetupFrame();
 }
 
-void Win32UserWindow::MoveTo(double x, double y)
+void UserWindow::MoveTo(double x, double y)
 {
 	this->SetupFrame();
 }
 
-double Win32UserWindow::GetWidth()
+double UserWindow::GetWidth()
 {
 	return GetBounds().width;
 }
 
-void Win32UserWindow::SetWidth(double width)
+void UserWindow::SetWidth(double width)
 {
 	this->SetupFrame();
 }
 
-double Win32UserWindow::GetHeight()
+double UserWindow::GetHeight()
 {
 	return GetBounds().height;
 }
 
-void Win32UserWindow::SetHeight(double height)
+void UserWindow::SetHeight(double height)
 {
 	this->SetupFrame();
 }
 
-double Win32UserWindow::GetMaxWidth()
+double UserWindow::GetMaxWidth()
 {
 	return this->config->GetMaxWidth();
 }
 
-void Win32UserWindow::SetMaxWidth(double width)
+void UserWindow::SetMaxWidth(double width)
 {
 	this->SetupFrame();
 }
 
-double Win32UserWindow::GetMinWidth()
+double UserWindow::GetMinWidth()
 {
 	return this->config->GetMinWidth();
 }
 
-void Win32UserWindow::SetMinWidth(double width)
+void UserWindow::SetMinWidth(double width)
 {
 	this->SetupFrame();
 }
 
-double Win32UserWindow::GetMaxHeight()
+double UserWindow::GetMaxHeight()
 {
 	return this->config->GetMaxHeight();
 }
 
-void Win32UserWindow::SetMaxHeight(double height)
+void UserWindow::SetMaxHeight(double height)
 {
 	this->SetupFrame();
 }
 
-double Win32UserWindow::GetMinHeight()
+double UserWindow::GetMinHeight()
 {
 	return this->config->GetMinHeight();
 }
 
-void Win32UserWindow::SetMinHeight(double height)
+void UserWindow::SetMinHeight(double height)
 {
 	this->SetupFrame();
 }
 
-Bounds Win32UserWindow::GetBoundsImpl()
+Bounds UserWindow::GetBoundsImpl()
 {
 	// We need to use window rectangle to get the position, since we
 	// position independent of chrome and the client rectange for the size
@@ -788,7 +803,7 @@ Bounds Win32UserWindow::GetBoundsImpl()
 	return bounds;
 }
 
-void Win32UserWindow::SetupFrame()
+void UserWindow::SetupFrame()
 {
 	Bounds bounds;
 	bounds.x = this->config->GetX();
@@ -798,7 +813,7 @@ void Win32UserWindow::SetupFrame()
 	this->SetBounds(bounds);
 }
 
-void Win32UserWindow::SetBoundsImpl(Bounds bounds)
+void UserWindow::SetBoundsImpl(Bounds bounds)
 {
 	HWND desktop = GetDesktopWindow();
 	RECT desktopRect, boundsRect;
@@ -835,16 +850,16 @@ void Win32UserWindow::SetBoundsImpl(Bounds bounds)
 	MoveWindow(windowHandle, bounds.x, bounds.y, bounds.width, bounds.height, TRUE);
 }
 
-void Win32UserWindow::SetTitleImpl(const std::string& title)
+void UserWindow::SetTitleImpl(const std::string& title)
 {
 	std::wstring titleW = ::UTF8ToWide(title);
 	SetWindowTextW(windowHandle, titleW.c_str());
 }
 
-void Win32UserWindow::SetURL(std::string& url_)
+void UserWindow::SetURL(std::string& url_)
 {
 	std::string url = URLUtils::NormalizeURL(url_);
-	Win32UIBinding::SetProxyForURL(url);
+	UIBinding::SetProxyForURL(url);
 
 	IWebMutableURLRequest* request = 0;
 	std::wstring method = L"GET" ;
@@ -884,32 +899,32 @@ void Win32UserWindow::SetURL(std::string& url_)
 	}
 }
 
-void Win32UserWindow::SetResizableImpl(bool resizable)
+void UserWindow::SetResizableImpl(bool resizable)
 {
 	this->SetupDecorations();
 }
 
-void Win32UserWindow::SetMaximizable(bool maximizable)
+void UserWindow::SetMaximizable(bool maximizable)
 {
 	this->SetupDecorations();
 }
 
-void Win32UserWindow::SetMinimizable(bool minimizable)
+void UserWindow::SetMinimizable(bool minimizable)
 {
 	this->SetupDecorations();
 }
 
-void Win32UserWindow::SetCloseable(bool closeable)
+void UserWindow::SetCloseable(bool closeable)
 {
 	this->SetupDecorations();
 }
 
-bool Win32UserWindow::IsVisible()
+bool UserWindow::IsVisible()
 {
 	return IsWindowVisible(windowHandle);
 }
 
-void Win32UserWindow::SetTransparency(double transparency)
+void UserWindow::SetTransparency(double transparency)
 {
 	if (!HasTransparentBackground())
 	{
@@ -919,7 +934,7 @@ void Win32UserWindow::SetTransparency(double transparency)
 	}
 }
 
-void Win32UserWindow::SetFullscreen(bool fullscreen)
+void UserWindow::SetFullscreen(bool fullscreen)
 {
 	if (fullscreen)
 	{
@@ -949,28 +964,28 @@ void Win32UserWindow::SetFullscreen(bool fullscreen)
 	}
 }
 
-void Win32UserWindow::SetMenu(AutoMenu menu)
+void UserWindow::SetMenu(AutoMenu menu)
 {
-	this->menu = menu.cast<Win32Menu>();
+	this->menu = menu;
 	this->SetupMenu();
 }
 
-AutoMenu Win32UserWindow::GetMenu()
+AutoMenu UserWindow::GetMenu()
 {
 	return this->menu;
 }
 
-void Win32UserWindow::SetContextMenu(AutoMenu menu)
+void UserWindow::SetContextMenu(AutoMenu menu)
 {
-	this->contextMenu = menu.cast<Win32Menu>();
+	this->contextMenu = menu;
 }
 
-AutoMenu Win32UserWindow::GetContextMenu()
+AutoMenu UserWindow::GetContextMenu()
 {
 	return this->contextMenu;
 }
 
-void Win32UserWindow::SetIcon(std::string& iconPath)
+void UserWindow::SetIcon(std::string& iconPath)
 {
 	this->iconPath = iconPath;
 	this->SetupIcon();
@@ -992,11 +1007,11 @@ static HICON GetDefaultIcon()
 	return defaultIcon;
 }
 
-void Win32UserWindow::SetupIcon()
+void UserWindow::SetupIcon()
 {
 	std::string iconPath(this->iconPath);
 	if (iconPath.empty())
-		iconPath = static_cast<Win32UIBinding*>(UIBinding::GetInstance())->GetIcon();
+		iconPath = UIBinding::GetInstance()->GetIconPath();
 
 	HICON smallIcon = 0;
 	HICON largeIcon = 0;
@@ -1007,8 +1022,8 @@ void Win32UserWindow::SetupIcon()
 		int largeIconSizeX = GetSystemMetrics(SM_CXICON);
 		int largeIconSizeY = GetSystemMetrics(SM_CYICON);
 
-		largeIcon = Win32UIBinding::LoadImageAsIcon(iconPath, largeIconSizeX, largeIconSizeY);
-		smallIcon = Win32UIBinding::LoadImageAsIcon(iconPath, smallIconSizeX, smallIconSizeY);
+		largeIcon = UIBinding::LoadImageAsIcon(iconPath, largeIconSizeX, largeIconSizeY);
+		smallIcon = UIBinding::LoadImageAsIcon(iconPath, smallIconSizeX, smallIconSizeY);
 	}
 
 	if (!largeIcon)
@@ -1021,17 +1036,12 @@ void Win32UserWindow::SetupIcon()
 		SendMessageA(windowHandle, (UINT) WM_SETICON, ICON_SMALL, (LPARAM) smallIcon);
 }
 
-std::string& Win32UserWindow::GetIcon()
-{
-	return iconPath;
-}
-
-void Win32UserWindow::SetUsingChrome(bool chrome)
+void UserWindow::SetUsingChrome(bool chrome)
 {
 	this->SetupDecorations();
 }
 
-void Win32UserWindow::SetupDecorations()
+void UserWindow::SetupDecorations()
 {
 	long windowStyle = GetWindowLong(this->windowHandle, GWL_STYLE);
 
@@ -1060,7 +1070,7 @@ void Win32UserWindow::SetupDecorations()
 	}
 }
 
-void Win32UserWindow::SetupState()
+void UserWindow::SetupState()
 {
 	if (config->IsFullscreen())
 	{
@@ -1076,7 +1086,7 @@ void Win32UserWindow::SetupState()
 	}
 }
 
-void Win32UserWindow::AppMenuChanged()
+void UserWindow::AppMenuChanged()
 {
 	if (this->menu.isNull())
 	{
@@ -1084,12 +1094,12 @@ void Win32UserWindow::AppMenuChanged()
 	}
 }
 
-void Win32UserWindow::AppIconChanged()
+void UserWindow::AppIconChanged()
 {
 	this->SetupIcon();
 }
 
-void Win32UserWindow::RemoveOldMenu()
+void UserWindow::RemoveOldMenu()
 {
 	if (!this->activeMenu.isNull() && this->nativeMenu) {
 		this->activeMenu->DestroyNative(this->nativeMenu);
@@ -1104,15 +1114,14 @@ void Win32UserWindow::RemoveOldMenu()
 
 }
 
-void Win32UserWindow::SetupMenu()
+void UserWindow::SetupMenu()
 {
-	AutoPtr<Win32Menu> menu = this->menu;
+	AutoMenu menu = this->menu;
 
 	// No window menu, try to use the application menu.
 	if (menu.isNull())
 	{
-		Win32UIBinding* b = static_cast<Win32UIBinding*>(UIBinding::GetInstance());
-		menu = b->GetMenu().cast<Win32Menu>();
+		menu = UIBinding::GetInstance()->GetMenu();
 	}
 
 	// Only do this if the menu is actually changing.
@@ -1130,7 +1139,7 @@ void Win32UserWindow::SetupMenu()
 }
 
 // Called by FrameLoadDelegate to let the window know it's loaded.
-void Win32UserWindow::FrameLoaded()
+void UserWindow::FrameLoaded()
 {
 	if (this->requiresDisplay && this->config->IsVisible())
 	{
@@ -1138,12 +1147,12 @@ void Win32UserWindow::FrameLoaded()
 	}
 }
 
-bool Win32UserWindow::IsTopMost()
+bool UserWindow::IsTopMost()
 {
 	return this->config->IsTopMost();
 }
 
-void Win32UserWindow::SetTopMost(bool topmost)
+void UserWindow::SetTopMost(bool topmost)
 {
 	if (topmost)
 	{
@@ -1157,7 +1166,7 @@ void Win32UserWindow::SetTopMost(bool topmost)
 	}
 }
 
-void Win32UserWindow::ShowInspector(bool console)
+void UserWindow::ShowInspector(bool console)
 {
 	if (this->webInspector)
 	{
@@ -1172,7 +1181,7 @@ void Win32UserWindow::ShowInspector(bool console)
 	}
 }
 
-void Win32UserWindow::OpenFileChooserDialog(KMethodRef callback, bool multiple,
+void UserWindow::OpenFileChooserDialog(KMethodRef callback, bool multiple,
 	std::string& title, std::string& path, std::string& defaultName,
 	std::vector<std::string>& types, std::string& typesDescription)
 {
@@ -1182,14 +1191,14 @@ void Win32UserWindow::OpenFileChooserDialog(KMethodRef callback, bool multiple,
 	callback->Call(ValueList(Value::NewList(results)));
 }
 
-void Win32UserWindow::OpenFolderChooserDialog(KMethodRef callback, bool multiple,
+void UserWindow::OpenFolderChooserDialog(KMethodRef callback, bool multiple,
 	std::string& title, std::string& path, std::string& defaultName)
 {
 	KListRef results = SelectDirectory(multiple, title, path, defaultName);
 	callback->Call(ValueList(Value::NewList(results)));
 }
 
-void Win32UserWindow::OpenSaveAsDialog(KMethodRef callback, std::string& title,
+void UserWindow::OpenSaveAsDialog(KMethodRef callback, std::string& title,
 	std::string& path, std::string& defaultName,
 	std::vector<std::string>& types, std::string& typesDescription)
 {
@@ -1198,7 +1207,7 @@ void Win32UserWindow::OpenSaveAsDialog(KMethodRef callback, std::string& title,
 	callback->Call(ValueList(Value::NewList(results)));
 }
 
-KListRef Win32UserWindow::SelectFile(bool saveDialog, bool multiple, std::string& title,
+KListRef UserWindow::SelectFile(bool saveDialog, bool multiple, std::string& title,
 	std::string& path, std::string& defaultName, std::vector<std::string>& types,
 	std::string& typesDescription)
 {
@@ -1317,7 +1326,7 @@ KListRef Win32UserWindow::SelectFile(bool saveDialog, bool multiple, std::string
 	return results;
 }
 
-KListRef Win32UserWindow::SelectDirectory(bool multiple, std::string& title,
+KListRef UserWindow::SelectDirectory(bool multiple, std::string& title,
 	std::string& path, std::string& defaultName)
 {
 	KListRef results = new StaticBoundList();
@@ -1349,7 +1358,7 @@ KListRef Win32UserWindow::SelectDirectory(bool multiple, std::string& title,
 	return results;
 }
 
-void Win32UserWindow::GetMinMaxInfo(MINMAXINFO* minMaxInfo)
+void UserWindow::GetMinMaxInfo(MINMAXINFO* minMaxInfo)
 {
 	if (!minMaxInfo)
 		return;
@@ -1423,27 +1432,27 @@ static void ParseMultipleSelectedFiles(OPENFILENAME* ofn,
 	}
 }
 
-void Win32UserWindow::RedrawMenu()
+void UserWindow::RedrawMenu()
 {
 	if (this->windowHandle)
 		DrawMenuBar(this->windowHandle);
 }
 
 /*static*/
-void Win32UserWindow::RedrawAllMenus()
+void UserWindow::RedrawAllMenus()
 {
 	// Notify all windows that the app menu has changed.
 	std::vector<AutoUserWindow>& windows = UIBinding::GetInstance()->GetOpenWindows();
 	std::vector<AutoUserWindow>::iterator i = windows.begin();
 	while (i != windows.end())
 	{
-		AutoPtr<Win32UserWindow> wuw = (*i++).cast<Win32UserWindow>();
+		AutoUserWindow wuw = (*i++);
 		if (!wuw.isNull())
 			wuw->RedrawMenu();
 	}
 }
 
-void Win32UserWindow::SetContentsImpl(const std::string& content, const std::string& baseURL)
+void UserWindow::SetContentsImpl(const std::string& content, const std::string& baseURL)
 {
 	if (!this->mainFrame)
 		return;

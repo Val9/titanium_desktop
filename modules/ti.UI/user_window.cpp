@@ -4,6 +4,7 @@
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
 #include "user_window.h"
+#include "ui_module.h"
 
 #include <kroll/javascript/javascript_module_instance.h>
 
@@ -23,7 +24,24 @@ UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 	nativeWindow(0),
 	nativeWindowMask(0),
 #endif
+#ifdef OS_WIN32
+	frameLoadDelegate(0),
+	uiDelegate(0),
+	policyDelegate(0),
+	resourceLoadDelegate(0),
+	restoreStyles(0),
+	windowHandle(0),
+	viewWindowHandle(0),
+	webkitBitmap(0),
+	timer(0),
+	webView(0),
+	mainFrame(0),
+	webInspector(0),
+	requiresDisplay(true),
+	nativeMenu(0),
+#endif
 	menu(0),
+	activeMenu(0),
 	contextMenu(0)
 {
 	// This method is on Titanium.UI, but will be delegated to this class.

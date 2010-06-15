@@ -3,11 +3,13 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
+
+#include "webkit_resource_load_delegate.h"
+#include "../user_window.h"
 
 namespace ti
 {
-Win32WebKitResourceLoadDelegate::Win32WebKitResourceLoadDelegate(Win32UserWindow* userWindow) :
+Win32WebKitResourceLoadDelegate::Win32WebKitResourceLoadDelegate(UserWindow* userWindow) :
 	userWindow(userWindow),
 	refCount(1)
 {

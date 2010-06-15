@@ -5,6 +5,8 @@
  */
 #include "menu.h"
 
+#include "ui_binding.h"
+
 namespace ti
 {
 	using std::vector;

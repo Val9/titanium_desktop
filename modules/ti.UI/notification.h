@@ -7,7 +7,7 @@
 #ifndef _NOTIFICATION_H_
 #define _NOTIFICATION_H_
 
-#include "ui_module.h"
+#include "ui.h"
 
 #ifdef OS_LINUX
 typedef struct _NotifyNotification NotifyNotification;

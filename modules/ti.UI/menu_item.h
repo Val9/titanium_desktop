@@ -6,7 +6,7 @@
 #ifndef _MENU_ITEM_H_
 #define _MENU_ITEM_H_
 
-#include "ui_module.h"
+#include "ui.h"
 #include "menu.h"
 
 namespace ti
@@ -71,17 +71,25 @@ namespace ti
 		void UpdateNativeMenuItems();
 #endif
 
-	protected:
-		MenuItemType type;
-		bool enabled;
-		std::string label;
-		std::string iconURL;
-		std::string iconPath;
-		KMethodRef callback;
-		AutoMenu submenu;
-		std::vector<KMethodRef> eventListeners;
-		bool state;
-		bool autoCheck;
+#ifdef OS_WIN32
+		// Pieces of information we can use to do a reverse lookup
+		// on an item's position in a parent menu.
+		struct NativeItemBits
+		{
+			UINT id;
+			HMENU parentMenu;
+			HMENU submenu;
+		};
+
+		void RecreateAllNativeItems();
+		void RecreateMenuItem(NativeItemBits* bits);
+		void CreateNative(LPMENUITEMINFO itemInfo,
+			HMENU nativeParentMenu, bool registerNative);
+		void DestroyNative(NativeItemBits* bits);
+		void DestroyNative(HMENU nativeParent, int position);
+		static int GetNativeMenuItemPosition(NativeItemBits* bits);
+		static bool HandleClickEvent(HMENU nativeMenu, UINT position);
+#endif
 
 	private:
 #ifdef OS_OSX
@@ -95,6 +103,23 @@ namespace ti
 
 		std::vector<NSMenuItem*> nativeItems;
 #endif
+
+#ifdef OS_WIN32
+		AutoMenu oldSubmenu;
+		std::wstring wideOldLabel;
+		std::vector<NativeItemBits*> nativeItems;
+#endif
+
+		MenuItemType type;
+		bool enabled;
+		std::string label;
+		std::string iconURL;
+		std::string iconPath;
+		KMethodRef callback;
+		AutoMenu submenu;
+		std::vector<KMethodRef> eventListeners;
+		bool state;
+		bool autoCheck;
 	};
 }
 #endif

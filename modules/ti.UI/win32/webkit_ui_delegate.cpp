@@ -3,14 +3,18 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
+
+#include "webkit_ui_delegate.h"
+#include "popup_dialog.h"
+#include "../user_window.h"
+
 #include <comutil.h>
 #define MARGIN 20
 
 namespace ti
 {
 
-Win32WebKitUIDelegate::Win32WebKitUIDelegate(Win32UserWindow *window_) :
+Win32WebKitUIDelegate::Win32WebKitUIDelegate(UserWindow *window_) :
 	window(window_),
 	nativeContextMenu(0),
 	logger(Logger::Get("UI.Win32WebKitUIDelegate")),
@@ -107,10 +111,10 @@ HRESULT STDMETHODCALLTYPE Win32WebKitUIDelegate::createWebViewWithRequest(
 		this->window->GetAutoPtr().cast<UserWindow>()));
 	window->Open();
 
-	// Win32UserWindow::GetWebView returns a borrowed reference
+	// UserWindow::GetWebView returns a borrowed reference
 	// but this delegate should return a new reference, so bump
 	// the reference count before returning.
-	*newWebView = window.cast<Win32UserWindow>()->GetWebView();
+	*newWebView = window->GetWebView();
 	(*newWebView)->AddRef();
 	return S_OK;
 }
@@ -261,13 +265,13 @@ HRESULT STDMETHODCALLTYPE Win32WebKitUIDelegate::trackCustomPopupMenu(
 	/* [in] */ OLE_HANDLE inMenu,
 	/* [in] */ LPPOINT point)
 {
-	AutoPtr<Win32Menu> menu = this->window->GetContextMenu().cast<Win32Menu>();
+	AutoMenu menu = this->window->GetContextMenu();
 
 	// No window menu, try to use the application menu.
 	if (menu.isNull())
 	{
-		Win32UIBinding* b = static_cast<Win32UIBinding*>(UIBinding::GetInstance());
-		menu = b->GetContextMenu().cast<Win32Menu>();
+		UIBinding* b = UIBinding::GetInstance();
+		menu = b->GetContextMenu();
 	}
 
 	if (this->nativeContextMenu) {
@@ -283,7 +287,7 @@ HRESULT STDMETHODCALLTYPE Win32WebKitUIDelegate::trackCustomPopupMenu(
 	else if (host->DebugModeEnabled())
 	{
 		this->nativeContextMenu = CreatePopupMenu();
-		Win32Menu::ApplyNotifyByPositionStyleToNativeMenu(this->nativeContextMenu);
+		Menu::ApplyNotifyByPositionStyleToNativeMenu(this->nativeContextMenu);
 	}
 
 	if (this->nativeContextMenu)
@@ -408,7 +412,7 @@ HRESULT STDMETHODCALLTYPE Win32WebKitUIDelegate::newBackingStore(
 	/* [in] */ IWebView *webView,
 	/* [in] */ OLE_HANDLE bitmapHandle)
 {
-	AutoPtr<Win32UserWindow> userWindow = Win32UserWindow::FromWebView(webView);
+	AutoUserWindow userWindow = UserWindow::FromWebView(webView);
 	if (userWindow.isNull())
 		return S_OK;
 

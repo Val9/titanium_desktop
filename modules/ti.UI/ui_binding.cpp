@@ -349,43 +349,6 @@ namespace ti
 		}
 	}
 
-	void UIBinding::_SetDockIcon(const ValueList& args, KValueRef result)
-	{
-		std::string iconPath;
-		if (args.size() > 0) {
-			std::string in = args.GetString(0);
-			iconPath = URLUtils::URLToPath(in);
-		}
-		this->SetDockIcon(iconPath);
-	}
-
-	void UIBinding::_SetDockMenu(const ValueList& args, KValueRef result)
-	{
-		AutoMenu menu(args.GetObject(0, 0).cast<Menu>());
-		this->SetDockMenu(menu);
-	}
-
-	void UIBinding::_SetBadge(const ValueList& args, KValueRef result)
-	{
-		std::string badgeText;
-		if (args.size() > 0) {
-			badgeText = args.GetString(0);
-		}
-
-		this->SetBadge(badgeText);
-	}
-
-	void UIBinding::_SetBadgeImage(const ValueList& args, KValueRef result)
-	{
-		std::string iconPath;
-		if (args.size() > 0) {
-			std::string in = args.GetString(0);
-			iconPath = URLUtils::URLToPath(in);
-		}
-
-		this->SetBadgeImage(iconPath);
-	}
-
 	void UIBinding::_GetIdleTime(
 		const ValueList& args,
 		KValueRef result)

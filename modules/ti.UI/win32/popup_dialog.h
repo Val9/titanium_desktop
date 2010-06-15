@@ -7,6 +7,8 @@
 #define TI_POPUP_DIALOG_H_
 #define MAX_INPUT_LENGTH 1024
 
+#include "../ui_module.h"
+
 namespace ti {
 
 	class Win32PopupDialog {

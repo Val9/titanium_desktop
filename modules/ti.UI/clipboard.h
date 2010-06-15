@@ -7,7 +7,7 @@
 #ifndef _CLIPBOARD_H_
 #define _CLIPBOARD_H_
 
-#include <kroll/kroll.h>
+#include "ui.h"
 
 namespace ti
 {

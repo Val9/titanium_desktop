@@ -7,8 +7,7 @@
 #ifndef _UI_BINDING_H_
 #define _UI_BINDING_H_
 
-#include "ui_module.h"
-#include "window_config.h"
+#include "ui.h"
 #include "clipboard.h"
 #include "menu.h"
 #include "menu_item.h"
@@ -56,6 +55,7 @@ namespace ti
 		void _GetIdleTime(const ValueList& args, KValueRef result);
 
 		AutoMenu GetContextMenu() { return contextMenu; }
+		AutoMenu GetMenu() { return menu; }
 
 #ifdef OS_OSX
 		void _SetDockIcon(const ValueList& args, KValueRef result);
@@ -73,6 +73,22 @@ namespace ti
 		void SetupAppMenuParts(NSMenu* mainMenu);
 
 		static NSImage* MakeImage(std::string&);
+#endif
+
+#ifdef OS_WIN32
+		std::string& GetIconPath() { return iconPath; }
+
+		static HICON LoadImageAsIcon(std::string& path, int sizeX, int sizeY);
+		static HBITMAP LoadImageAsBitmap(std::string& path, int sizeX, int sizeY);
+		static HICON BitmapToIcon(HBITMAP bitmap, int sizeX, int sizeY);
+		static HBITMAP IconToBitmap(HICON icon, int sizeX, int sizeY);
+		static HBITMAP LoadPNGAsBitmap(std::string& path, int sizeX, int sizeY);
+		static cairo_surface_t* ScaleCairoSurface(
+			cairo_surface_t *oldSurface, int newWidth, int newHeight);
+		static void ReleaseImage(HANDLE);
+		static void SetProxyForURL(std::string& url);
+
+		static UINT nextItemId;
 #endif
 
 		// Platform implementations
@@ -93,6 +109,12 @@ namespace ti
 		NSMenu* nativeDockMenu;
 		NSView* savedDockView;
 		NSObject* application;
+#endif
+
+#ifdef OS_WIN32
+		std::string iconPath;
+		static std::vector<HICON> loadedICOs;
+		static std::vector<HBITMAP> loadedBMPs;
 #endif
 
 		static UIBinding* instance;

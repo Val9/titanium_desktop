@@ -6,7 +6,7 @@
 #ifndef _MENU_H_
 #define _MENU_H_
 
-#include "ui_module.h"
+#include "ui.h"
 #include "menu_item.h"
 
 namespace ti
@@ -67,8 +67,20 @@ namespace ti
 		static void ReplaceAppNameStandinInMenu(NSMenu* menu, NSString* appName);
 #endif
 
-	protected:
-		std::vector<AutoMenuItem> children;
+#ifdef OS_WIN32
+		void ClearNativeMenu(HMENU nativeMenu);
+		void DestroyNative(HMENU nativeMenu);
+		HMENU CreateNative(bool registerNative);
+		HMENU CreateNativeTopLevel(bool registerNative);
+		void AddChildrenToNativeMenu(HMENU nativeMenu, bool registerNative);
+
+		static void InsertItemIntoNativeMenu(
+			MenuItem* menuItem, HMENU nativeMenu,
+			bool registerNative, int position=-1);
+		static void RemoveItemAtFromNativeMenu(
+			MenuItem* item, HMENU nativeMenu, int position);
+		static void ApplyNotifyByPositionStyleToNativeMenu(HMENU nativeMenu);
+#endif
 
 	private:
 #ifdef OS_OSX
@@ -76,6 +88,13 @@ namespace ti
 		NSMenu* CreateNative(bool lazy, bool registerMenu);
 		std::vector<NSMenu*> nativeMenus;
 #endif
+
+#ifdef OS_WIN32
+		std::vector<AutoMenuItem> oldChildren;
+		std::vector<HMENU> nativeMenus;
+#endif
+
+		std::vector<AutoMenuItem> children;
 	};
 }
 #endif

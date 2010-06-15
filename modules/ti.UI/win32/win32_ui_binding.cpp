@@ -4,24 +4,20 @@
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
 
-#include "../ui_module.h"
+#include "../ui_binding.h"
+
 #define _WINSOCKAPI_
 #include <cstdlib>
 #include <sstream>
-#include <windows.h>
 
 using std::vector;
 namespace ti
 {
-	UINT Win32UIBinding::nextItemId = NEXT_ITEM_ID_BEGIN;
-	vector<HICON> Win32UIBinding::loadedICOs;
-	vector<HBITMAP> Win32UIBinding::loadedBMPs;
+	UINT UIBinding::nextItemId = NEXT_ITEM_ID_BEGIN;
+	vector<HICON> UIBinding::loadedICOs;
+	vector<HBITMAP> UIBinding::loadedBMPs;
 
-	Win32UIBinding::Win32UIBinding(Module *uiModule, Host *host) :
-		UIBinding(host),
-		menu(0),
-		contextMenu(0),
-		iconPath("")
+	void UIBinding::Initialize()
 	{
 		// Initialize common controls so that our Win32 native
 		// components look swanky.
@@ -52,41 +48,15 @@ namespace ti
 		setCookieJarFilename(cookieJarFilename.c_str());
 	}
 	
-	Win32UIBinding::~Win32UIBinding()
+	void UIBinding::Shutdown()
 	{
 	}
 
-	AutoMenu Win32UIBinding::CreateMenu()
+	void UIBinding::SetupMainMenu(bool force)
 	{
-		return new Win32Menu();
 	}
 
-	AutoMenuItem Win32UIBinding::CreateMenuItem()
-	{
-		return new Win32MenuItem(MenuItem::NORMAL);
-	}
-
-	AutoMenuItem Win32UIBinding::CreateSeparatorMenuItem()
-	{
-		return new Win32MenuItem(MenuItem::SEPARATOR);
-	}
-
-	AutoMenuItem Win32UIBinding::CreateCheckMenuItem()
-	{
-		return new Win32MenuItem(MenuItem::CHECK);
-	}
-
-	void Win32UIBinding::SetMenu(AutoMenu newMenu)
-	{
-		this->menu = newMenu.cast<Win32Menu>();
-	}
-
-	void Win32UIBinding::SetContextMenu(AutoMenu newMenu)
-	{
-		this->contextMenu = newMenu.cast<Win32Menu>();
-	}
-
-	void Win32UIBinding::SetIcon(std::string& iconPath)
+	void UIBinding::SetIcon(std::string& iconPath)
 	{
 		if (!FileUtils::IsFile(iconPath))
 		{
@@ -98,13 +68,7 @@ namespace ti
 		}
 	}
 
-	AutoPtr<TrayItem> Win32UIBinding::AddTray(std::string& iconPath, KMethodRef cbSingleClick)
-	{
-		AutoPtr<TrayItem> trayItem = new Win32TrayItem(iconPath, cbSingleClick);
-		return trayItem;
-	}
-
-	long Win32UIBinding::GetIdleTime()
+	long UIBinding::GetIdleTime()
 	{
 		LASTINPUTINFO lii;
 		memset(&lii, 0, sizeof(lii));
@@ -118,23 +82,8 @@ namespace ti
 		return (int)idleTicks;
 	}
 
-	AutoMenu Win32UIBinding::GetMenu()
-	{
-		return this->menu;
-	}
-
-	AutoMenu Win32UIBinding::GetContextMenu()
-	{
-		return this->contextMenu;
-	}
-
-	std::string& Win32UIBinding::GetIcon()
-	{
-		return this->iconPath;
-	}
-
 	/*static*/
-	HBITMAP Win32UIBinding::LoadImageAsBitmap(std::string& path, int sizeX, int sizeY)
+	HBITMAP UIBinding::LoadImageAsBitmap(std::string& path, int sizeX, int sizeY)
 	{
 		UINT flags = LR_DEFAULTSIZE | LR_LOADFROMFILE |
 			LR_LOADTRANSPARENT | LR_CREATEDIBSECTION;
@@ -146,7 +95,7 @@ namespace ti
 		{
 			HICON hicon = (HICON) LoadImageW(NULL, widePath.c_str(), IMAGE_ICON,
 				sizeX, sizeY, LR_LOADFROMFILE);
-			h = Win32UIBinding::IconToBitmap(hicon, sizeX, sizeY);
+			h = UIBinding::IconToBitmap(hicon, sizeX, sizeY);
 			DestroyIcon(hicon);
 		}
 		else if (_stricmp(ext, ".bmp") == 0)
@@ -168,7 +117,7 @@ namespace ti
 	}
 
 	/*static*/
-	HICON Win32UIBinding::LoadImageAsIcon(std::string& path, int sizeX, int sizeY)
+	HICON UIBinding::LoadImageAsIcon(std::string& path, int sizeX, int sizeY)
 	{
 		UINT flags = LR_DEFAULTSIZE | LR_LOADFROMFILE |
 			LR_LOADTRANSPARENT | LR_CREATEDIBSECTION;
@@ -185,13 +134,13 @@ namespace ti
 		{
 			HBITMAP bitmap = (HBITMAP) LoadImageW(0, widePath.c_str(),
 				IMAGE_BITMAP, sizeX, sizeY, flags);
-			h = Win32UIBinding::BitmapToIcon(bitmap, sizeX, sizeY);
+			h = UIBinding::BitmapToIcon(bitmap, sizeX, sizeY);
 			DeleteObject(bitmap);
 		}
 		else if (_stricmp(ext, ".png") == 0)
 		{
 			HBITMAP bitmap = LoadPNGAsBitmap(path, sizeX, sizeY);
-			h = Win32UIBinding::BitmapToIcon(bitmap, sizeX, sizeY);
+			h = UIBinding::BitmapToIcon(bitmap, sizeX, sizeY);
 			DeleteObject(bitmap);
 		}
 		else
@@ -204,7 +153,7 @@ namespace ti
 	}
 	
 	/*static*/
-	HICON Win32UIBinding::BitmapToIcon(HBITMAP bitmap, int sizeX, int sizeY)
+	HICON UIBinding::BitmapToIcon(HBITMAP bitmap, int sizeX, int sizeY)
 	{
 		if (!bitmap)
 			return 0;
@@ -221,7 +170,7 @@ namespace ti
 	}
 
 	/*static*/
-	HBITMAP Win32UIBinding::IconToBitmap(HICON icon, int sizeX, int sizeY)
+	HBITMAP UIBinding::IconToBitmap(HICON icon, int sizeX, int sizeY)
 	{
 		if (!icon)
 			return 0;
@@ -243,7 +192,7 @@ namespace ti
 	}
 
 	/*static*/
-	HBITMAP Win32UIBinding::LoadPNGAsBitmap(std::string& path, int sizeX, int sizeY)
+	HBITMAP UIBinding::LoadPNGAsBitmap(std::string& path, int sizeX, int sizeY)
 	{
 		std::string systemPath(UTF8ToSystem(path));
 		cairo_surface_t* pngSurface =
@@ -300,7 +249,7 @@ namespace ti
 		return out;
 	}
 
-	cairo_surface_t* Win32UIBinding::ScaleCairoSurface(
+	cairo_surface_t* UIBinding::ScaleCairoSurface(
 		cairo_surface_t* oldSurface, int newWidth, int newHeight)
 	{
 		cairo_matrix_t scaleMatrix;
@@ -333,7 +282,7 @@ namespace ti
 
 
 	/*static*/
-	void Win32UIBinding::ReleaseImage(HANDLE handle)
+	void UIBinding::ReleaseImage(HANDLE handle)
 	{
 		vector<HICON>::iterator i = loadedICOs.begin();
 		while (i != loadedICOs.end()) {
@@ -358,7 +307,7 @@ namespace ti
 	}
 
 	/*static*/
-	void Win32UIBinding::SetProxyForURL(std::string& url)
+	void UIBinding::SetProxyForURL(std::string& url)
 	{
 		SharedPtr<Proxy> proxy(ProxyConfig::GetProxyForURL(url));
 		if (!proxy.isNull())
@@ -383,7 +332,7 @@ namespace ti
 	}
 
 	/*static*/
-	void Win32UIBinding::ErrorDialog(std::string msg)
+	void UIBinding::ErrorDialog(std::string msg)
 	{
 		std::wstring msgW = ::UTF8ToWide(msg);
 		MessageBox(NULL, msgW.c_str(), L"Application Error", 

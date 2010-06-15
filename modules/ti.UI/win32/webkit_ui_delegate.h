@@ -5,15 +5,20 @@
  */
 #ifndef TI_WEBKIT_WIN32_UI_DELEGATE_H_
 #define TI_WEBKIT_WIN32_UI_DELEGATE_H_
-#include <windows.h>
-namespace ti
-{
 
-class Win32UserWindow;
+#include "../ui.h"
+
+#define WEB_INSPECTOR_MENU_ITEM_ID 7500
+#define NEXT_ITEM_ID_BEGIN 7501
+
+namespace ti {
+
+class UserWindow;
+
 class Win32WebKitUIDelegate : public IWebUIDelegate2, IWebUIDelegatePrivate
 {
 public:
-	Win32WebKitUIDelegate(Win32UserWindow *window);
+	Win32WebKitUIDelegate(UserWindow *window);
 
 	// These function declarations copied from WebKit DumpRenderTree (UIDelegate.cpp)
 	// IUnknown
@@ -379,7 +384,7 @@ protected:
 		/* [out] */ IWebDesktopNotificationsDelegate** result) { return E_NOTIMPL; }
 
 private:
-	Win32UserWindow* window;
+	UserWindow* window;
 	HMENU nativeContextMenu;
 	Logger* logger;
 	int referenceCount;

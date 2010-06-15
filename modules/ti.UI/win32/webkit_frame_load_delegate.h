@@ -6,17 +6,17 @@
 
 #ifndef TI_WIN32_WEBKIT_FRAME_LOAD_DELEGATE_H_
 #define TI_WIN32_WEBKIT_FRAME_LOAD_DELEGATE_H_
+
+#include "../ui.h"
+
 namespace ti {
 
-class Win32UserWindow;
+class UserWindow;
 
 class Win32WebKitFrameLoadDelegate : public IWebFrameLoadDelegate {
-protected:
-	int ref_count;
-	Win32UserWindow *window;
 
 public:
-	Win32WebKitFrameLoadDelegate(Win32UserWindow *window);
+	Win32WebKitFrameLoadDelegate(UserWindow *window);
 
 	// IUnknown
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
@@ -89,6 +89,10 @@ public:
 		JSContextRef context,
 		JSObjectRef windowScriptObject,
 		IWebFrame *frame);
+
+protected:
+	int ref_count;
+	UserWindow *window;
 };
 
 }

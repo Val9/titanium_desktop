@@ -6,8 +6,9 @@
 #ifndef _TRAY_ITEM_H_
 #define _TRAY_ITEM_H_
 
-#include "ui_module.h"
+#include "ui.h"
 #include "menu_item.h"
+#include "menu.h"
 
 namespace ti
 {
@@ -35,6 +36,16 @@ namespace ti
 		void _GetHint(const ValueList& args, KValueRef result);
 		void _Remove(const ValueList& args, KValueRef result);
 
+#ifdef OS_WIN32
+		void ShowTrayMenu();
+		void HandleRightClick();
+		void HandleLeftClick();
+		void HandleDoubleLeftClick();
+		UINT GetId();
+		static bool MessageHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		static LRESULT CALLBACK DoubleClickTimerProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+#endif
+
 	protected:
 		AutoMenu menu;
 		std::string iconURL;
@@ -47,6 +58,14 @@ namespace ti
 #ifdef OS_OSX
 		NSMenu* nativeMenu;
 		NSStatusItem* nativeItem;
+#endif
+
+#ifdef OS_WIN32
+		HMENU oldNativeMenu;
+		NOTIFYICONDATA* trayIconData;
+		static std::vector<AutoTrayItem> trayItems;
+		static UINT trayClickedMessage;
+		bool is_double_clicked;
 #endif
 	};
 }

@@ -6,56 +6,10 @@
 #ifndef _UI_MODULE_H_
 #define _UI_MODULE_H_
 
-#include <kroll/kroll.h>
-
-#include <JavaScriptCore/JSObjectRef.h>
-#include <JavaScriptCore/JSStringRef.h>
-#include <JavaScriptCore/JSContextRef.h>
-
-#include <iostream>
-
-#include <kroll/javascript/javascript_module.h>
-
-namespace ti {
-	class UIBinding;
-	class Menu;
-	class MenuItem;
-	class TrayItem;
-	class UserWindow;
-
-	typedef AutoPtr<UserWindow> AutoUserWindow;
-	typedef AutoPtr<UIBinding> AutoUIBinding;
-	typedef AutoPtr<Menu> AutoMenu;
-	typedef AutoPtr<MenuItem> AutoMenuItem;
-	typedef AutoPtr<TrayItem> AutoTrayItem;
-}
-
-/*
-#include "window_config.h"
-#include "user_window.h"
-#include "menu.h"
-#include "menu_item.h"
-#include "tray_item.h"
-#include "ui_binding.h"
-#include "script_evaluator.h"
-#include "clipboard.h"
-*/
-
-#ifdef OS_LINUX
-#include "gtk/ui_module_gtk.h"
-#elif defined(OS_OSX)
-#include <Carbon/Carbon.h>
-#include <WebKit/WebKit.h>
-#include "osx/ti_application_delegate.h"
-#include "osx/titanium_protocols.h"
-#elif defined(OS_WIN32)
-#include "win32/ui_module_win32.h"
-#endif
+#include "ui.h"
 
 #include "ui_binding.h"
 #include "script_evaluator.h"
-
-#include "url/url.h"
 
 namespace ti {
 

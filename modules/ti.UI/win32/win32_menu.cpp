@@ -3,7 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h" 
+#include "../menu.h"
+#include "../user_window.h"
 
 namespace ti
 {
@@ -11,12 +12,11 @@ namespace ti
 	using std::map;
 	using std::string;
 
-	Win32Menu::Win32Menu() :
-		Menu()
+	void Menu::Initialize()
 	{
 	}
 
-	Win32Menu::~Win32Menu()
+	void Menu::Shutdown()
 	{
 		std::vector<HMENU>::iterator i = this->nativeMenus.begin();
 		while (i != this->nativeMenus.end()) {
@@ -25,60 +25,60 @@ namespace ti
 		nativeMenus.clear();
 	}
 
-	void Win32Menu::AppendItemImpl(AutoMenuItem item)
+	void Menu::AppendItemImpl(AutoMenuItem item)
 	{
-		AutoPtr<Win32MenuItem> win32Item = item.cast<Win32MenuItem>();
+		AutoMenuItem win32Item = item;
 
 		std::vector<HMENU>::iterator i = this->nativeMenus.begin();
 		while (i != this->nativeMenus.end()) {
 			HMENU nativeMenu = (*i++);
-			Win32Menu::InsertItemIntoNativeMenu(win32Item, nativeMenu, true);
+			Menu::InsertItemIntoNativeMenu(win32Item, nativeMenu, true);
 		}
 
 		this->oldChildren = this->children;
 
 		if (this->nativeMenus.size() > 0) {
-			Win32UserWindow::RedrawAllMenus();
+			UserWindow::RedrawAllMenus();
 		}
 	}
 
-	void Win32Menu::InsertItemAtImpl(AutoMenuItem item, unsigned int index)
+	void Menu::InsertItemAtImpl(AutoMenuItem item, unsigned int index)
 	{
-		AutoPtr<Win32MenuItem> win32Item = item.cast<Win32MenuItem>();
+		AutoMenuItem win32Item = item;
 		
 		std::vector<HMENU>::iterator i = this->nativeMenus.begin();
 		while (i != this->nativeMenus.end())
 		{
 			HMENU nativeMenu = (*i++);
-			Win32Menu::InsertItemIntoNativeMenu(win32Item, nativeMenu, true, index);
+			Menu::InsertItemIntoNativeMenu(win32Item, nativeMenu, true, index);
 		}
 
 		this->oldChildren = this->children;
 
 		if (this->nativeMenus.size() > 0) {
-			Win32UserWindow::RedrawAllMenus();
+			UserWindow::RedrawAllMenus();
 		}
 	}
 
-	void Win32Menu::RemoveItemAtImpl(unsigned int index)
+	void Menu::RemoveItemAtImpl(unsigned int index)
 	{
-		AutoPtr<Win32MenuItem> win32Item = oldChildren.at(index).cast<Win32MenuItem>();
+		AutoMenuItem win32Item = oldChildren.at(index);
 
 		std::vector<HMENU>::iterator i = this->nativeMenus.begin();
 		while (i != this->nativeMenus.end())
 		{
 			HMENU nativeMenu = (*i++);
-			Win32Menu::RemoveItemAtFromNativeMenu(win32Item, nativeMenu, index);
+			Menu::RemoveItemAtFromNativeMenu(win32Item, nativeMenu, index);
 		}
 
 		this->oldChildren = this->children;
 
 		if (this->nativeMenus.size() > 0) {
-			Win32UserWindow::RedrawAllMenus();
+			UserWindow::RedrawAllMenus();
 		}
 	}
 
-	void Win32Menu::ClearImpl()
+	void Menu::ClearImpl()
 	{
 		std::vector<HMENU>::iterator i = this->nativeMenus.begin();
 		while (i != this->nativeMenus.end())
@@ -90,13 +90,13 @@ namespace ti
 		this->oldChildren = this->children;
 
 		if (this->nativeMenus.size() > 0) {
-			Win32UserWindow::RedrawAllMenus();
+			UserWindow::RedrawAllMenus();
 		}
 	}
 
 	/*static*/
-	void Win32Menu::InsertItemIntoNativeMenu(
-		Win32MenuItem* item, HMENU nativeMenu, bool registerNative, int position)
+	void Menu::InsertItemIntoNativeMenu(
+		MenuItem* item, HMENU nativeMenu, bool registerNative, int position)
 	{
 		
 		// A -1 value means to stick the new item at the end
@@ -117,8 +117,8 @@ namespace ti
 	}
 
 	/*static*/
-	void Win32Menu::RemoveItemAtFromNativeMenu(
-		Win32MenuItem* item, HMENU nativeMenu, int position)
+	void Menu::RemoveItemAtFromNativeMenu(
+		MenuItem* item, HMENU nativeMenu, int position)
 	{
 		item->DestroyNative(nativeMenu, position);
 
@@ -129,16 +129,15 @@ namespace ti
 		}
 	}
 
-	void Win32Menu::ClearNativeMenu(HMENU nativeMenu)
+	void Menu::ClearNativeMenu(HMENU nativeMenu)
 	{
 		for (int i = GetMenuItemCount(nativeMenu) - 1; i >= 0; i--) {
-			AutoPtr<Win32MenuItem> win32Item =
-				this->oldChildren.at(i).cast<Win32MenuItem>();
+			AutoMenuItem win32Item =	this->oldChildren.at(i);
 			RemoveItemAtFromNativeMenu(win32Item.get(), nativeMenu, i);
 		}
 	}
 
-	void Win32Menu::DestroyNative(HMENU nativeMenu)
+	void Menu::DestroyNative(HMENU nativeMenu)
 	{
 		if (!nativeMenu) {
 			return;
@@ -157,7 +156,7 @@ namespace ti
 		this->ClearNativeMenu(nativeMenu);
 	}
 
-	HMENU Win32Menu::CreateNative(bool registerNative)
+	HMENU Menu::CreateNative(bool registerNative)
 	{
 		HMENU nativeMenu = CreatePopupMenu();
 		ApplyNotifyByPositionStyleToNativeMenu(nativeMenu);
@@ -169,7 +168,7 @@ namespace ti
 		return nativeMenu;
 	}
 
-	HMENU Win32Menu::CreateNativeTopLevel(bool registerNative)
+	HMENU Menu::CreateNativeTopLevel(bool registerNative)
 	{
 		HMENU nativeMenu = CreateMenu();
 		ApplyNotifyByPositionStyleToNativeMenu(nativeMenu);
@@ -181,18 +180,18 @@ namespace ti
 		return nativeMenu;
 	}
 
-	void Win32Menu::AddChildrenToNativeMenu(HMENU nativeMenu, bool registerNative)
+	void Menu::AddChildrenToNativeMenu(HMENU nativeMenu, bool registerNative)
 	{
 		vector<AutoMenuItem>::iterator i = this->children.begin();
 		while (i != this->children.end()) {
 			AutoMenuItem item = *i++;
-			AutoPtr<Win32MenuItem> win32Item = item.cast<Win32MenuItem>();
-			Win32Menu::InsertItemIntoNativeMenu(win32Item.get(), nativeMenu, registerNative);
+			AutoMenuItem win32Item = item;
+			Menu::InsertItemIntoNativeMenu(win32Item.get(), nativeMenu, registerNative);
 		}
 	}
 
 	/*static*/
-	void Win32Menu::ApplyNotifyByPositionStyleToNativeMenu(HMENU nativeMenu)
+	void Menu::ApplyNotifyByPositionStyleToNativeMenu(HMENU nativeMenu)
 	{
 		MENUINFO menuInfo;
 		ZeroMemory(&menuInfo, sizeof(MENUINFO)); 

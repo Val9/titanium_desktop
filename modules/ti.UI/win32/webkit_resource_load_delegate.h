@@ -6,13 +6,16 @@
 #ifndef _TI_WEBKIT_RESOURCE_LOAD_DELEGATE_H_
 #define _TI_WEBKIT_RESOURCE_LOAD_DELEGATE_H_
 
+#include "../ui.h"
+
 namespace ti
 {
+class UserWindow;
 
 class Win32WebKitResourceLoadDelegate : public IWebResourceLoadDelegate
 {
 public:
-	Win32WebKitResourceLoadDelegate(Win32UserWindow* userWindow);
+	Win32WebKitResourceLoadDelegate(UserWindow* userWindow);
 
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 	virtual ULONG STDMETHODCALLTYPE AddRef(void);
@@ -73,7 +76,7 @@ public:
 		/* [in] */ IWebDataSource *dataSource);
 
 private:
-	Win32UserWindow* userWindow;
+	UserWindow* userWindow;
 	int refCount;
 };
 

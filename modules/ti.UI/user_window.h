@@ -11,11 +11,17 @@
 #include <vector>
 #include <map>
 
+#include "ui.h"
+#include "menu.h"
+
 #ifdef OS_WIN32
 #undef CreateWindow
-#endif
 
-#include "ui_module.h"
+#include "win32/webkit_frame_load_delegate.h"
+#include "win32/webkit_policy_delegate.h"
+#include "win32/webkit_ui_delegate.h"
+#include "win32/webkit_resource_load_delegate.h"
+#endif
 
 #ifdef OS_OSX
 #include "osx/native_window.h"
@@ -218,8 +224,8 @@ namespace ti
 			bool IsTopMost();
 			void SetTopMost(bool topmost);
 			void ShowInspector(bool console=false);
-			void AppIconChanged() {};
-			void AppMenuChanged() {};
+			void AppIconChanged();
+			void AppMenuChanged();
 			void SetContentsImpl(const std::string& content,  const std::string& baseURL);
 
 #ifdef OS_OSX
@@ -230,6 +236,21 @@ namespace ti
 			void OpenChooserDialog(bool files, KMethodRef callback, bool multiple,
 				std::string& title, std::string& path, std::string& defaultName,
 				std::vector<std::string>& types, std::string& typesDescription);
+#endif
+
+#ifdef OS_WIN32
+			void FrameLoaded();
+			HWND GetWindowHandle();
+			static UserWindow* FromWindow(HWND hWnd);
+			static AutoUserWindow FromWebView(IWebView *webView);
+			void RedrawMenu();
+			static void RedrawAllMenus();
+			IWebView* GetWebView() { return webView; };
+			void SetBitmap(HBITMAP bitmap) { this->webkitBitmap = bitmap; }
+			UINT_PTR GetTimer() { return this->timer; }
+			void UpdateBitmap();
+			void GetMinMaxInfo(MINMAXINFO* minMaxInfo);
+			void ResizeSubViews();
 #endif
 
 		protected:
@@ -259,15 +280,56 @@ namespace ti
 			unsigned int nativeWindowMask;
 			bool focused;
 			static bool initial;
-			std::string iconPath;
 
 			NSRect CalculateWindowFrame(double x, double y,
 				double width, double height);
 			NSScreen* GetWindowScreen();
 #endif
 
+#ifdef OS_WIN32
+			Win32WebKitFrameLoadDelegate* frameLoadDelegate;
+			Win32WebKitUIDelegate* uiDelegate;
+			Win32WebKitPolicyDelegate* policyDelegate;
+			Win32WebKitResourceLoadDelegate* resourceLoadDelegate;
+			Bounds restoreBounds;
+			long restoreStyles;
+			HWND windowHandle;
+			HWND viewWindowHandle;
+			HBITMAP webkitBitmap;
+			UINT_PTR timer;
+			IWebView* webView;
+			IWebFrame* mainFrame;
+			IWebInspector* webInspector;
+			Bounds chromeSize;
+			HMENU nativeMenu; // This window's active native menu
+
+			// Set this flag to indicate that when the frame is loaded we want to
+			// show the window - we do this to prevent white screen while the first
+			// URL loads in the WebView.
+			bool requiresDisplay;
+
+			void RemoveOldMenu();
+			DWORD GetStyleFromConfig();
+			void InitWindow();
+			void InitWebKit();
+			void SetupFrame();
+			void SetupDecorations();
+			void SetupState();
+			void SetupMenu();
+			void SetupIcon();
+
+			KListRef SelectFile(
+				bool saveDialog, bool multiple, std::string& title,
+				std::string& path, std::string& defaultName,
+				std::vector<std::string>& types, std::string& typesDescription);
+			KListRef SelectDirectory(bool multiple, std::string& title,
+				std::string& path, std::string& defaultName);
+#endif
+
 			AutoMenu menu;
+			AutoMenu activeMenu;
 			AutoMenu contextMenu;
+			std::string iconPath;
 
 			DISALLOW_EVIL_CONSTRUCTORS(UserWindow);
 	};
