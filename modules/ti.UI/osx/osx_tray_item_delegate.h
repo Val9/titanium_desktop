@@ -3,7 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008-2009 Appcelerator, Inc. All Rights Reserved.
  */
-#import "../ui_module.h"
+#import "../ui.h"
+#import "../tray_item.h"
 
 @interface OSXTrayItemDelegate : NSObject
 {

@@ -6,10 +6,10 @@
 #ifndef _NATIVE_WINDOW_H_
 #define _NATIVE_WINDOW_H_
 
-#import <Cocoa/Cocoa.h>
-#import <WebKit/WebInspector.h>
-
+#import "native_window.h"
 #import "webview_delegate.h"
+
+#import <WebKit/WebInspector.h>
 
 @class WebViewDelegate;
 

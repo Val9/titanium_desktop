@@ -3,8 +3,7 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#import <WebKit/WebKit.h>
-#include "../ui_module.h"
+#include "titanium_protocols.h"
 
 static NSString* GetRegisteredMimeTypeFromExtension(NSString* ext)
 {

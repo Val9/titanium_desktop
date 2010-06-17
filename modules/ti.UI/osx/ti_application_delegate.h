@@ -6,7 +6,8 @@
 #ifndef TI_APP_H
 #define TI_APP_H
 
-#import "../ui_module.h"
+#import "../ui.h"
+#import "../ui_binding.h"
 
 @interface TiApplicationDelegate : NSObject
 {

@@ -3,15 +3,14 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#import "../ui_module.h"
-#import <Cocoa/Cocoa.h>
-#import <WebKit/WebKit.h>
+#import "../ui.h"
+#include "native_window.h"
+
 #import <WebKit/WebViewPrivate.h>
 #import <WebKit/WebInspector.h>
 #import <WebKit/WebScriptDebugDelegate.h>
 #import <WebKit/WebScriptObject.h>
 #import <WebKit/WebPreferencesPrivate.h>
-
 #import <WebKit/WebFramePrivate.h>
 #import <WebKit/WebPreferenceKeysPrivate.h>
 

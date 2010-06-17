@@ -3,11 +3,11 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#import <Cocoa/Cocoa.h>
-#import <AppKit/AppKit.h>
 
-#import "../ui_module.h"
+#import "ti_application_delegate.h"
 #import "../menu.h"
+
+#import <AppKit/AppKit.h>
 
 @implementation TiApplicationDelegate
 

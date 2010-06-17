@@ -3,7 +3,8 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2008 Appcelerator, Inc. All Rights Reserved.
  */
-#import "../ui_module.h"
+#import "../ui.h"
+#import "../menu_item.h"
 
 @interface OSXMenuItemDelegate : NSObject
 {

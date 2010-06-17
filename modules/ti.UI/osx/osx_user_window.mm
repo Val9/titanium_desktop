@@ -804,6 +804,14 @@ namespace ti
 		[nativeWindow showInspector:console];
 	}
 
+    void UserWindow::AppIconChanged()
+    {
+    }
+
+    void UserWindow::AppMenuChanged()
+    {
+    }
+
 	void UserWindow::SetContentsImpl(const std::string& content, const std::string& baseURL)
 	{
 		[[[nativeWindow webView] mainFrame]
