@@ -20,6 +20,20 @@ UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 	parent(parent),
 	active(false),
 	initialized(false),
+#ifdef OS_LINUX
+	targetWidth(-1),
+	targetHeight(-1),
+	targetX(-1),
+	targetY(-1),
+	targetMaximized(false),
+	targetMinimized(false),
+	gtkWindow(0),
+	vbox(0),
+	webView(0),
+	topmost(false),
+	nativeMenu(0),
+	inspectorWindow(0),
+#endif
 #ifdef OS_OSX
 	nativeWindow(0),
 	nativeWindowMask(0),
@@ -42,7 +56,8 @@ UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 #endif
 	menu(0),
 	activeMenu(0),
-	contextMenu(0)
+	contextMenu(0),
+	iconPath("")
 {
 	// This method is on Titanium.UI, but will be delegated to this class.
 	this->SetMethod("getCurrentWindow", &UserWindow::_GetCurrentWindow);

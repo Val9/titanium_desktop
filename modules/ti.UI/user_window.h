@@ -228,6 +228,19 @@ namespace ti
 			void AppMenuChanged();
 			void SetContentsImpl(const std::string& content,  const std::string& baseURL);
 
+#ifdef OS_LINUX
+			void CreateWidgets();
+			void ShowWidgets();
+			void SetupDecorations();
+			void SetupTransparency();
+			void SetupSizeLimits();
+			void SetupSize();
+			void SetupPosition();
+			void SetupMenu();
+			void SetupIcon();
+			void RemoveOldMenu();
+#endif
+
 #ifdef OS_OSX
 			NativeWindow* GetNative() { return nativeWindow; }
 			void Focused();
@@ -275,6 +288,31 @@ namespace ti
 			static void LoadUIJavaScript(JSGlobalContextRef context);
 
 		private:
+#ifdef OS_LINUX
+			// These values contain the most-recently-set dimension
+			// information for this UserWindow. GDK is asynchronous,
+			// so if a user sets the value the and fetches it without
+			// giving up control to the UI thread, returning one of them
+			// will yield the correct information. When we actually
+			// detect a GDK window resize, these values will also be
+			// updated, so they will be an accurate representation of
+			// the window size.
+			int targetWidth;
+			int targetHeight;
+			int targetX;
+			int targetY;
+			bool targetMaximized;
+			bool targetMinimized;
+
+			GtkWindow* gtkWindow;
+			GtkWidget* vbox;
+			WebKitWebView* webView;
+			bool topmost;
+			gulong deleteCallbackId; 
+			::GtkMenuBar* nativeMenu; // The widget this window uses for a menu.
+			GtkWidget *inspectorWindow; // This window's web inspector window
+#endif
+
 #ifdef OS_OSX
 			NativeWindow* nativeWindow;
 			unsigned int nativeWindowMask;

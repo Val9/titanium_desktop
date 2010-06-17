@@ -33,7 +33,19 @@ namespace ti {
 }
 
 #ifdef OS_LINUX
-#include "gtk/ui_module_gtk.h"
+#include <gdk/gdk.h>
+#include <gdk/gdkx.h>
+#include <webkit/webkit.h>
+#include <webkit/webkittitanium.h>
+
+// X11 defines this again for some reason
+#undef DisplayString
+
+#include "gtk_menu.h"
+#include "gtk_menu_item.h"
+#include "gtk_user_window.h"
+#include "gtk_tray_item.h"
+#include "gtk_ui_binding.h"
 #endif
 
 #ifdef OS_OSX
