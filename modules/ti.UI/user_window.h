@@ -28,9 +28,6 @@
 #include "osx/native_window.h"
 #endif
 
-#include "../ti.App/app_config.h"
-#include "../ti.App/window_config.h"
-
 namespace ti
 {
 	typedef struct {
@@ -240,6 +237,24 @@ namespace ti
 			void SetupMenu();
 			void SetupIcon();
 			void RemoveOldMenu();
+			void SetInspectorWindow(GtkWidget* inspectorWindow);
+			GtkWidget *GetInspectorWindow();
+			WebKitWebView* GetWebView() { return this->webView; }
+
+			// These values contain the most-recently-set dimension
+			// information for this UserWindow. GDK is asynchronous,
+			// so if a user sets the value the and fetches it without
+			// giving up control to the UI thread, returning one of them
+			// will yield the correct information. When we actually
+			// detect a GDK window resize, these values will also be
+			// updated, so they will be an accurate representation of
+			// the window size.
+			int targetWidth;
+			int targetHeight;
+			int targetX;
+			int targetY;
+			bool targetMaximized;
+			bool targetMinimized;
 #endif
 
 #ifdef OS_OSX
@@ -290,21 +305,6 @@ namespace ti
 
 		private:
 #ifdef OS_LINUX
-			// These values contain the most-recently-set dimension
-			// information for this UserWindow. GDK is asynchronous,
-			// so if a user sets the value the and fetches it without
-			// giving up control to the UI thread, returning one of them
-			// will yield the correct information. When we actually
-			// detect a GDK window resize, these values will also be
-			// updated, so they will be an accurate representation of
-			// the window size.
-			int targetWidth;
-			int targetHeight;
-			int targetX;
-			int targetY;
-			bool targetMaximized;
-			bool targetMinimized;
-
 			GtkWindow* gtkWindow;
 			GtkWidget* vbox;
 			WebKitWebView* webView;

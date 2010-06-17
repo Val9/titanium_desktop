@@ -12,6 +12,14 @@ namespace ti
 {
 UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 	KEventObject("UI.UserWindow"),
+#ifdef OS_LINUX
+	targetWidth(-1),
+	targetHeight(-1),
+	targetX(-1),
+	targetY(-1),
+	targetMaximized(false),
+	targetMinimized(false),
+#endif
 	logger(Logger::Get("UI.UserWindow")),
 	binding(UIModule::GetInstance()->GetUIBinding()),
 	domWindow(0),
@@ -21,12 +29,6 @@ UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 	active(false),
 	initialized(false),
 #ifdef OS_LINUX
-	targetWidth(-1),
-	targetHeight(-1),
-	targetX(-1),
-	targetY(-1),
-	targetMaximized(false),
-	targetMinimized(false),
 	gtkWindow(0),
 	vbox(0),
 	webView(0),

@@ -5,6 +5,7 @@
  */
 
 #include "../user_window.h"
+#include "../ui_binding.h"
 
 #include <Poco/Process.h>
 
@@ -58,7 +59,7 @@ namespace ti
 	static gboolean ScriptPromptCallback(WebKitWebView* webView,
 		WebKitWebFrame* frame, gchar* message, gchar* defaultPromptValue,
 		gchar** value, gpointer data);
-	static bool MakeScriptDialog(DialogType type, Window* window,
+	static bool MakeScriptDialog(DialogType type, GtkWindow* window,
 		const gchar* message, const gchar* defaultPromptResponse,
 		char** promptResponse);
 	static gboolean CloseWebViewCallback(WebKitWebView*, gpointer);
@@ -185,11 +186,10 @@ namespace ti
 		if (this->config->IsMinimized())
 			this->Minimize();
 
-		UserWindow::Open();
 		this->FireEvent(Event::OPENED);
 	}
 
-	void UserWindow::Open()
+	void UserWindow::OpenImpl()
 	{
 		this->CreateWidgets();
 		this->ShowWidgets();
@@ -203,18 +203,13 @@ namespace ti
 		return !userWindow->Close();
 	}
 
-	bool UserWindow::Close()
+	bool UserWindow::CloseImpl()
 	{
 		// Hold a reference here so we can still get the value of
 		// this->timer and this->active even after calling ::Closed
 		// which will remove us from the open window list and decrement
 		// the reference count.
 		AutoUserWindow keep(this, true);
-
-		if (!this->active)
-			return false;
-
-		UserWindow::Close();
 
 		// If the window is still active at this point, it
 		// indicates an event listener has cancelled this close event.
@@ -408,7 +403,7 @@ namespace ti
 		std::string iconPath = this->iconPath;
 
 		if (iconPath.empty()) {
-			iconPath = UIBinding::GetInstance()->GetIcon();
+			iconPath = UIBinding::GetInstance()->GetIconPath();
 		}
 	
 		if (!iconPath.empty())

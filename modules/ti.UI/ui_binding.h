@@ -24,7 +24,9 @@ namespace ti
 		UIBinding(Host *host);
 		virtual ~UIBinding();
 		Host* GetHost();
+
 		AutoMenu GetActiveMenu() { return activeMenu; }
+		std::string& GetIconPath() { return this->iconPath; }
 
 		void CreateMainWindow(AutoPtr<WindowConfig> config);
 		AutoUserWindow GetMainWindow();
@@ -76,8 +78,6 @@ namespace ti
 #endif
 
 #ifdef OS_WIN32
-		std::string& GetIconPath() { return iconPath; }
-
 		static HICON LoadImageAsIcon(std::string& path, int sizeX, int sizeY);
 		static HBITMAP LoadImageAsBitmap(std::string& path, int sizeX, int sizeY);
 		static HICON BitmapToIcon(HBITMAP bitmap, int sizeX, int sizeY);

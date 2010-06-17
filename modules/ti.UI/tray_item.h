@@ -19,6 +19,9 @@ namespace ti
 		TrayItem(std::string& iconURL, KMethodRef cb);
 		~TrayItem();
 
+		AutoMenu GetMenu() { return this->menu; }
+		KMethodRef GetCallback() { return this->callback; }
+
 		// Platform implementations
 		void Initialize();
 		void Shutdown();
@@ -35,6 +38,10 @@ namespace ti
 		void _GetMenu(const ValueList& args, KValueRef result);
 		void _GetHint(const ValueList& args, KValueRef result);
 		void _Remove(const ValueList& args, KValueRef result);
+
+#ifdef OS_LINUX
+		GtkStatusIcon* GetWidget();
+#endif
 
 #ifdef OS_WIN32
 		void ShowTrayMenu();

@@ -16,6 +16,7 @@
 #include <kroll/kroll.h>
 #include <kroll/javascript/javascript_module.h>
 #include "url/url.h"
+#include "app_config.h"
 #include "window_config.h"
 
 namespace ti {

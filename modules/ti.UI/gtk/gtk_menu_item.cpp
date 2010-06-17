@@ -145,7 +145,6 @@ namespace ti
 			this->oldSubmenu->DestroyNative(oldNativeMenu);
 		}
 
-		AutoMenu newSubmenu = newSubmenu;
 		GtkMenuShell* newNativeMenu = 0;
 		if (!newSubmenu.isNull())
 		{

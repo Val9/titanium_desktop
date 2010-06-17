@@ -74,16 +74,6 @@ namespace ti
 			return NULL;
 	}
 
-	AutoMenu TrayItem::GetMenu()
-	{
-		return this->menu;
-	}
-
-	KMethodRef TrayItem::GetCallback()
-	{
-		return this->callback;
-	}
-
 	void TrayClickedCallback(GtkStatusIcon *status_icon, gpointer data)
 	{
 		TrayItem* item = static_cast<TrayItem*>(data);
