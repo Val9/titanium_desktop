@@ -43,6 +43,17 @@ namespace ti
 		void RemoveItemAtImpl(unsigned int index);
 		void ClearImpl();
 
+#ifdef OS_LINUX
+		void ClearNativeMenu(GtkMenuShell* nativeMenu);
+		void RemoveItemAtFromNativeMenu(GtkMenuShell* nativeMenu, unsigned int index);
+		void DestroyNative(GtkMenuShell* nativeMenu);
+		GtkMenuShell* CreateNativeBar(bool registerNative);
+		GtkMenuShell* CreateNative(bool registerNative);
+		void AddChildrenToNativeMenu(GtkMenuShell* nativeMenu, bool registerNative);
+		void RegisterNativeMenuItem(AutoMenuItem item, GtkMenuItem* nativeItem);
+		void DestroyNativeMenuItem(GtkMenuItem* nativeItem);
+#endif
+
 #ifdef OS_OSX
 		NSMenu* CreateNativeNow(bool registerMenu=true);
 		NSMenu* CreateNativeLazily(bool registerMenu=true);
@@ -83,6 +94,10 @@ namespace ti
 #endif
 
 	private:
+#ifdef OS_LINUX
+		std::vector<GtkMenuShell*> nativeMenus;
+#endif
+
 #ifdef OS_OSX
 		void Clear();
 		NSMenu* CreateNative(bool lazy, bool registerMenu);
@@ -90,11 +105,11 @@ namespace ti
 #endif
 
 #ifdef OS_WIN32
-		std::vector<AutoMenuItem> oldChildren;
 		std::vector<HMENU> nativeMenus;
 #endif
 
 		std::vector<AutoMenuItem> children;
+		std::vector<AutoMenuItem> oldChildren;
 	};
 }
 #endif

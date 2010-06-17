@@ -101,7 +101,7 @@ namespace ti
 		static void ErrorDialog(std::string);
 		static inline UIBinding* GetInstance() { return instance; }
 
-	protected:
+	private:
 #ifdef OS_OSX
 		AutoMenu dockMenu;
 		NSMenu* defaultMenu;
@@ -112,7 +112,6 @@ namespace ti
 #endif
 
 #ifdef OS_WIN32
-		std::string iconPath;
 		static std::vector<HICON> loadedICOs;
 		static std::vector<HBITMAP> loadedBMPs;
 #endif
@@ -127,6 +126,7 @@ namespace ti
 		AutoMenu menu;
 		AutoMenu contextMenu;
 		AutoMenu activeMenu;
+		std::string iconPath;
 
 		static void Log(Logger::Level level, std::string& message);
 	};

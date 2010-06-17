@@ -46,15 +46,12 @@ namespace ti
 		static LRESULT CALLBACK DoubleClickTimerProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 #endif
 
-	protected:
-		AutoMenu menu;
-		std::string iconURL;
-		std::string iconPath;
-		std::string hint;
-		bool removed;
-		KMethodRef callback;
-
 	private:
+#ifdef OS_LINUX
+		GtkStatusIcon* item;
+		bool active;
+#endif
+
 #ifdef OS_OSX
 		NSMenu* nativeMenu;
 		NSStatusItem* nativeItem;
@@ -67,6 +64,13 @@ namespace ti
 		static UINT trayClickedMessage;
 		bool is_double_clicked;
 #endif
+
+		AutoMenu menu;
+		std::string iconURL;
+		std::string iconPath;
+		std::string hint;
+		bool removed;
+		KMethodRef callback;
 	};
 }
 

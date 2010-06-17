@@ -3,12 +3,13 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-#include "../ui_module.h"
+#include "../menu_item.h"
+
 namespace ti
 {
 	static void MenuCallback(GtkMenuItem* nativeItem, gpointer data)
 	{
-		GtkMenuItem* item = static_cast<GtkMenuItem*>(data);
+		MenuItem* item = static_cast<MenuItem*>(data);
 		if (item->IsCheck())
 		{
 			g_signal_handlers_block_by_func(G_OBJECT(nativeItem),
@@ -21,57 +22,47 @@ namespace ti
 		item->HandleClickEvent(0);
 	}
 
-	GtkMenuItem::GtkMenuItem(MenuItemType type) :
-		MenuItem(type),
-		oldSubmenu(0)
-	{
-	}
-
-	GtkMenuItem::~GtkMenuItem()
-	{
-	}
-
-	void GtkMenuItem::SetLabelImpl(std::string newLabel)
+	void MenuItem::SetLabelImpl(std::string newLabel)
 	{
 		if (this->type == SEPARATOR)
 			return;
 
 		// Make a copy of the list of nativeItems, because we may modify it
-		std::vector< ::GtkMenuItem*> nativeCopy = this->nativeItems;
-		std::vector< ::GtkMenuItem*>::iterator i = nativeCopy.begin();
+		std::vector<GtkMenuItem*> nativeCopy = this->nativeItems;
+		std::vector<GtkMenuItem*>::iterator i = nativeCopy.begin();
 		while (i != nativeCopy.end())
 		{
-			::GtkMenuItem* nativeItem = *i++;
-			::GtkMenuItem* newNativeItem = this->CreateNative(true);
+			GtkMenuItem* nativeItem = *i++;
+			GtkMenuItem* newNativeItem = this->CreateNative(true);
 			this->ReplaceNativeItem(nativeItem, newNativeItem);
 		}
 	}
 
-	void GtkMenuItem::SetIconImpl(std::string newIconPath)
+	void MenuItem::SetIconImpl(std::string newIconPath)
 	{
 		if (this->type == SEPARATOR || this->type == CHECK)
 			return;
 
 		// Make a copy of the list of nativeItems, because SetNativeItemIcon may modify it
-		std::vector< ::GtkMenuItem*> nativeCopy = this->nativeItems;
+		std::vector<GtkMenuItem*> nativeCopy = this->nativeItems;
 
-		std::vector< ::GtkMenuItem*>::iterator i = nativeCopy.begin();
+		std::vector<GtkMenuItem*>::iterator i = nativeCopy.begin();
 		while (i != nativeCopy.end())
 		{
-			::GtkMenuItem* nativeItem = *i++;
+			GtkMenuItem* nativeItem = *i++;
 			this->SetNativeItemIcon(nativeItem, newIconPath);
 		}
 	}
 
-	void GtkMenuItem::SetStateImpl(bool newState)
+	void MenuItem::SetStateImpl(bool newState)
 	{
 		if (!this->IsCheck())
 			return;
 
-		std::vector< ::GtkMenuItem*>::iterator i = this->nativeItems.begin();
+		std::vector<GtkMenuItem*>::iterator i = this->nativeItems.begin();
 		while (i != this->nativeItems.end())
 		{
-			::GtkMenuItem* nativeItem = *i++;
+			GtkMenuItem* nativeItem = *i++;
 			g_signal_handlers_block_by_func(G_OBJECT(nativeItem),
 				(void*) MenuCallback, this);
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(nativeItem), newState);
@@ -80,35 +71,35 @@ namespace ti
 		}
 	}
 
-	void GtkMenuItem::SetSubmenuImpl(AutoMenu newSubmenu)
+	void MenuItem::SetSubmenuImpl(AutoMenu newSubmenu)
 	{
 		if (this->IsSeparator())
 			return;
 
-		std::vector< ::GtkMenuItem*>::iterator i = this->nativeItems.begin();
+		std::vector<GtkMenuItem*>::iterator i = this->nativeItems.begin();
 		while (i != this->nativeItems.end())
 		{
-			::GtkMenuItem* nativeItem = *i++;
+			GtkMenuItem* nativeItem = *i++;
 			this->SetNativeItemSubmenu(nativeItem, newSubmenu);
 		}
 
-		this->oldSubmenu = newSubmenu.cast<GtkMenu>();
+		this->oldSubmenu = newSubmenu;
 	}
 
-	void GtkMenuItem::SetEnabledImpl(bool enabled)
+	void MenuItem::SetEnabledImpl(bool enabled)
 	{
 		if (this->type == SEPARATOR)
 			return;
 
-		std::vector< ::GtkMenuItem*>::iterator i = this->nativeItems.begin();
+		std::vector<GtkMenuItem*>::iterator i = this->nativeItems.begin();
 		while (i != this->nativeItems.end())
 		{
-			::GtkMenuItem* nativeItem = *i++;
+			GtkMenuItem* nativeItem = *i++;
 			gtk_widget_set_sensitive(GTK_WIDGET(nativeItem), enabled);
 		}
 	}
 
-	void GtkMenuItem::SetNativeItemIcon(::GtkMenuItem* nativeItem, std::string& newIconPath)
+	void MenuItem::SetNativeItemIcon(GtkMenuItem* nativeItem, std::string& newIconPath)
 	{
 		// If we are clearing the icon and this is already an image item or we are
 		// not an image item and we are trying to set an image, then remake the native
@@ -117,7 +108,7 @@ namespace ti
 				G_TYPE_FROM_INSTANCE(nativeItem) == GTK_TYPE_IMAGE_MENU_ITEM) ||
 			(G_TYPE_FROM_INSTANCE(nativeItem) != GTK_TYPE_IMAGE_MENU_ITEM))
 		{
-			::GtkMenuItem* newNativeItem = this->CreateNative(true);
+			GtkMenuItem* newNativeItem = this->CreateNative(true);
 			this->ReplaceNativeItem(nativeItem, newNativeItem);
 		}
 		else
@@ -127,14 +118,14 @@ namespace ti
 		}
 	}
 
-	void GtkMenuItem::ReplaceNativeItem(::GtkMenuItem* nativeItem, ::GtkMenuItem* newNativeItem)
+	void MenuItem::ReplaceNativeItem(GtkMenuItem* nativeItem, GtkMenuItem* newNativeItem)
 	{
 		GtkMenuShell* nativeMenu = GTK_MENU_SHELL(gtk_widget_get_parent(GTK_WIDGET(nativeItem)));
 		GList* children = gtk_container_get_children(GTK_CONTAINER(nativeMenu));
 
 		for (size_t i = 0; i < g_list_length(children); i++)
 		{
-			::GtkMenuItem* w = static_cast< ::GtkMenuItem*>(g_list_nth_data(children, i));
+			GtkMenuItem* w = static_cast<GtkMenuItem*>(g_list_nth_data(children, i));
 			if (w == nativeItem)
 			{
 				gtk_container_remove(GTK_CONTAINER(nativeMenu), GTK_WIDGET(w));
@@ -146,42 +137,42 @@ namespace ti
 		}
 	}
 
-	void GtkMenuItem::SetNativeItemSubmenu(::GtkMenuItem* nativeItem, AutoMenu newSubmenu)
+	void MenuItem::SetNativeItemSubmenu(GtkMenuItem* nativeItem, AutoMenu newSubmenu)
 	{
-		::GtkMenuShell* oldNativeMenu = GTK_MENU_SHELL(gtk_menu_item_get_submenu(nativeItem));
+		GtkMenuShell* oldNativeMenu = GTK_MENU_SHELL(gtk_menu_item_get_submenu(nativeItem));
 		if (oldNativeMenu && !this->oldSubmenu.isNull())
 		{
 			this->oldSubmenu->DestroyNative(oldNativeMenu);
 		}
 
-		AutoPtr<GtkMenu> newGtkSubmenu = newSubmenu.cast<GtkMenu>();
-		::GtkMenuShell* newNativeMenu = 0;
-		if (!newGtkSubmenu.isNull())
+		AutoMenu newSubmenu = newSubmenu;
+		GtkMenuShell* newNativeMenu = 0;
+		if (!newSubmenu.isNull())
 		{
-			newNativeMenu = newGtkSubmenu->CreateNative(true);
+			newNativeMenu = newSubmenu->CreateNative(true);
 		}
 		gtk_menu_item_set_submenu(nativeItem, GTK_WIDGET(newNativeMenu));
 	}
 
-	::GtkMenuItem* GtkMenuItem::CreateNative(bool registerNative)
+	GtkMenuItem* MenuItem::CreateNative(bool registerNative)
 	{
-		::GtkMenuItem* newNativeItem;
+		GtkMenuItem* newNativeItem;
 		if (this->IsSeparator())
 		{
-			return (::GtkMenuItem*) gtk_separator_menu_item_new();
+			return (GtkMenuItem*) gtk_separator_menu_item_new();
 		}
 		else if (this->IsCheck())
 		{
-			newNativeItem = (::GtkMenuItem*) gtk_check_menu_item_new_with_label(label.c_str());
+			newNativeItem = (GtkMenuItem*) gtk_check_menu_item_new_with_label(label.c_str());
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(newNativeItem), this->state);
 		}
 		else if (this->iconPath.empty())
 		{
-			newNativeItem = (::GtkMenuItem*) gtk_menu_item_new_with_label(label.c_str());
+			newNativeItem = (GtkMenuItem*) gtk_menu_item_new_with_label(label.c_str());
 		}
 		else
 		{
-			newNativeItem = (::GtkMenuItem*) gtk_image_menu_item_new_with_label(label.c_str());
+			newNativeItem = (GtkMenuItem*) gtk_image_menu_item_new_with_label(label.c_str());
 			GtkWidget* image = gtk_image_new_from_file(this->iconPath.c_str());
 			gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(newNativeItem), image);
 		}
@@ -196,12 +187,12 @@ namespace ti
 		return newNativeItem;
 	}
 
-	void GtkMenuItem::DestroyNative(::GtkMenuItem* nativeItem)
+	void MenuItem::DestroyNative(GtkMenuItem* nativeItem)
 	{
-		std::vector< ::GtkMenuItem*>::iterator i = this->nativeItems.begin();
+		std::vector<GtkMenuItem*>::iterator i = this->nativeItems.begin();
 		while (i != this->nativeItems.end())
 		{
-			::GtkMenuItem* item = *i;
+			GtkMenuItem* item = *i;
 			if (item == nativeItem)
 				i = this->nativeItems.erase(i);
 			else

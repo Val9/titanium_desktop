@@ -24,7 +24,8 @@ namespace ti
 		host(host),
 		activeWindow(0),
 		menu(0),
-		contextMenu(0)
+		contextMenu(0),
+		iconPath("")
 	{
 		instance = this;
 

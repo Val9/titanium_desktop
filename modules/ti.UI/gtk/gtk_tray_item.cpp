@@ -3,8 +3,7 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
-
-#include "../ui_module.h"
+#include "../tray_item.h"
 
 namespace ti
 {
@@ -12,13 +11,11 @@ namespace ti
 	void TrayClickedCallback(GtkStatusIcon*, gpointer);
 	void TrayMenuCallback(GtkStatusIcon*, guint, guint, gpointer);
 
-	GtkTrayItem::GtkTrayItem(std::string& iconURL, KMethodRef cb) :
-		TrayItem(iconURL),
-		item(gtk_status_icon_new()),
-		menu(0),
-		callback(cb),
-		active(true)
+	void TrayItem::Initialize()
 	{
+		this->item = gtk_status_icon_new();
+		this->active = true;
+
 		g_signal_connect(
 			G_OBJECT(this->item), "activate",
 			G_CALLBACK(TrayClickedCallback), this);
@@ -30,11 +27,11 @@ namespace ti
 		gtk_status_icon_set_visible(this->item, TRUE);
 	}
 
-	GtkTrayItem::~GtkTrayItem()
+	void TrayItem::Shutdown()
 	{
 	}
 
-	void GtkTrayItem::SetIcon(std::string& iconPath)
+	void TrayItem::SetIcon(std::string& iconPath)
 	{
 		if (active) {
 			if (iconPath.empty()) {
@@ -45,12 +42,12 @@ namespace ti
 		}
 	}
 
-	void GtkTrayItem::SetMenu(AutoMenu menu)
+	void TrayItem::SetMenu(AutoMenu menu)
 	{
-		this->menu = menu.cast<GtkMenu>();
+		this->menu = menu;
 	}
 
-	void GtkTrayItem::SetHint(std::string& hint)
+	void TrayItem::SetHint(std::string& hint)
 	{
 		if (active) {
 			if (hint.empty()) {
@@ -61,7 +58,7 @@ namespace ti
 		}
 	}
 
-	void GtkTrayItem::Remove()
+	void TrayItem::Remove()
 	{
 		if (active) {
 			this->active = false;
@@ -69,7 +66,7 @@ namespace ti
 		}
 	}
 
-	GtkStatusIcon* GtkTrayItem::GetWidget()
+	GtkStatusIcon* TrayItem::GetWidget()
 	{
 		if (active)
 			return this->item;
@@ -77,19 +74,19 @@ namespace ti
 			return NULL;
 	}
 
-	AutoPtr<GtkMenu> GtkTrayItem::GetMenu()
+	AutoMenu TrayItem::GetMenu()
 	{
 		return this->menu;
 	}
 
-	KMethodRef GtkTrayItem::GetCallback()
+	KMethodRef TrayItem::GetCallback()
 	{
 		return this->callback;
 	}
 
 	void TrayClickedCallback(GtkStatusIcon *status_icon, gpointer data)
 	{
-		GtkTrayItem* item = static_cast<GtkTrayItem*>(data);
+		TrayItem* item = static_cast<TrayItem*>(data);
 		KMethodRef cb = item->GetCallback();
 
 		if (cb.isNull())
@@ -100,7 +97,7 @@ namespace ti
 			cb->Call(args);
 
 		} catch (ValueException& e) {
-			Logger* logger = Logger::Get("UI.GtkTrayItem");
+			Logger* logger = Logger::Get("UI.TrayItem");
 			SharedString ss = e.DisplayString();
 			logger->Error("Tray icon callback failed: %s", ss->c_str());
 		}
@@ -110,12 +107,12 @@ namespace ti
 		GtkStatusIcon *status_icon, guint button,
 		guint activate_time, gpointer data)
 	{
-		GtkTrayItem* item = static_cast<GtkTrayItem*>(data);
+		TrayItem* item = static_cast<TrayItem*>(data);
 		GtkStatusIcon* trayWidget = item->GetWidget();
-		AutoPtr<GtkMenu> menu = item->GetMenu();
+		AutoMenu menu = item->GetMenu();
 
 		if (!menu.isNull()) {
-			::GtkMenu* nativeMenu = (::GtkMenu*) menu->CreateNative(false);
+			GtkMenu* nativeMenu = (GtkMenu*) menu->CreateNative(false);
 			gtk_menu_popup(
 				nativeMenu, NULL, NULL,
 				gtk_status_icon_position_menu,

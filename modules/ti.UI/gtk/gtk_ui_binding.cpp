@@ -3,25 +3,19 @@
  * see LICENSE in the root folder for details on the license.
  * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
  */
+#include "../ui_binding.h"
 
-#include "../ui_module.h"
-#include "../url/url.h"
 #include <unistd.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/scrnsaver.h>
-#include <gdk/gdkx.h>
 #include <Poco/Thread.h>
 #include <libsoup/soup.h>
 #include <libsoup/soup-gnome.h>
 
 namespace ti
 {
-	GtkUIBinding::GtkUIBinding(Host *host) :
-		UIBinding(host),
-		menu(0),
-		contextMenu(0),
-		iconPath("")
+	void UIBinding::Initialize()
 	{
 		// Prepare the custom URL handlers
 		webkit_titanium_set_normalize_url_cb(NormalizeURLCallback);
@@ -40,48 +34,16 @@ namespace ti
 		//webkit_set_cache_model(WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER);
 	}
 
-	AutoMenu GtkUIBinding::CreateMenu()
+	void UIBinding::Shutdown()
 	{
-		return new GtkMenu();
 	}
 
-	AutoMenuItem GtkUIBinding::CreateMenuItem()
-	{
-		return new GtkMenuItem(MenuItem::NORMAL);
-	}
-
-	AutoMenuItem GtkUIBinding::CreateSeparatorMenuItem()
-	{
-		return new GtkMenuItem(MenuItem::SEPARATOR);
-	}
-
-	AutoMenuItem GtkUIBinding::CreateCheckMenuItem()
-	{
-		return new GtkMenuItem(MenuItem::CHECK);
-	}
-
-	void GtkUIBinding::SetMenu(AutoMenu newMenu)
-	{
-		this->menu = newMenu.cast<GtkMenu>();
-	}
-
-	void GtkUIBinding::SetContextMenu(AutoMenu newMenu)
-	{
-		this->contextMenu = newMenu.cast<GtkMenu>();
-	}
-
-	void GtkUIBinding::SetIcon(std::string& iconPath)
+	void UIBinding::SetIcon(std::string& iconPath)
 	{
 		this->iconPath = iconPath;
 	}
 
-	AutoTrayItem GtkUIBinding::AddTray(std::string& iconPath, KMethodRef cb)
-	{
-		AutoTrayItem item = new GtkTrayItem(iconPath, cb);
-		return item;
-	}
-
-	long GtkUIBinding::GetIdleTime()
+	long UIBinding::GetIdleTime()
 	{
 		Display *display = gdk_x11_get_default_xdisplay();
 		if (display == NULL)
@@ -96,23 +58,8 @@ namespace ti
 		return idle_time;
 	}
 
-	AutoMenu GtkUIBinding::GetMenu()
-	{
-		return this->menu;
-	}
-
-	AutoMenu GtkUIBinding::GetContextMenu()
-	{
-		return this->contextMenu;
-	}
-
-	std::string& GtkUIBinding::GetIcon()
-	{
-		return this->iconPath;
-	}
-
 	/*static*/
-	void GtkUIBinding::ErrorDialog(std::string msg)
+	void UIBinding::ErrorDialog(std::string msg)
 	{
 		GtkWidget* dialog = gtk_message_dialog_new(
 			NULL,
@@ -123,6 +70,5 @@ namespace ti
 			msg.c_str());
 		gtk_dialog_run(GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
-		UIBinding::ErrorDialog(msg);
 	}
 }

@@ -7,12 +7,13 @@
 #ifndef _USER_WINDOW_H_
 #define _USER_WINDOW_H_
 
-#include <string>
-#include <vector>
-#include <map>
 
 #include "ui.h"
 #include "menu.h"
+
+#include <string>
+#include <vector>
+#include <map>
 
 #ifdef OS_WIN32
 #undef CreateWindow
@@ -309,7 +310,7 @@ namespace ti
 			WebKitWebView* webView;
 			bool topmost;
 			gulong deleteCallbackId; 
-			::GtkMenuBar* nativeMenu; // The widget this window uses for a menu.
+			GtkMenuBar* nativeMenu; // The widget this window uses for a menu.
 			GtkWidget *inspectorWindow; // This window's web inspector window
 #endif
 

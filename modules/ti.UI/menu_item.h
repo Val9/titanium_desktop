@@ -65,6 +65,14 @@ namespace ti
 		void SetSubmenuImpl(AutoMenu newSubmenu);
 		void SetEnabledImpl(bool enabled);
 
+#ifdef OS_LINUX
+		void ReplaceNativeItem(GtkMenuItem* nativeItem, GtkMenuItem* newNativeItem);
+		void SetNativeItemIcon(GtkMenuItem* nativeItem, std::string& newIconPath);
+		void SetNativeItemSubmenu(GtkMenuItem* nativeItem, AutoMenu newSubmenu);
+		GtkMenuItem* CreateNative(bool registerNative);
+		void DestroyNative(GtkMenuItem* nativeItem);
+#endif
+
 #ifdef OS_OSX
 		NSMenuItem* CreateNative(bool registerNative=true);
 		void DestroyNative(NSMenuItem* realization);
@@ -92,6 +100,10 @@ namespace ti
 #endif
 
 	private:
+#ifdef OS_LINUX
+		std::vector<GtkMenuItem*> nativeItems;
+#endif
+
 #ifdef OS_OSX
 		static void SetNSMenuItemTitle(NSMenuItem* item, std::string& title);
 		static void SetNSMenuItemState(NSMenuItem* item, bool state);
@@ -105,7 +117,6 @@ namespace ti
 #endif
 
 #ifdef OS_WIN32
-		AutoMenu oldSubmenu;
 		std::wstring wideOldLabel;
 		std::vector<NativeItemBits*> nativeItems;
 #endif
@@ -117,6 +128,7 @@ namespace ti
 		std::string iconPath;
 		KMethodRef callback;
 		AutoMenu submenu;
+		AutoMenu oldSubmenu;
 		std::vector<KMethodRef> eventListeners;
 		bool state;
 		bool autoCheck;
