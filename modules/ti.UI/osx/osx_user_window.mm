@@ -26,11 +26,6 @@ namespace ti
 		return mask;
 	}
 
-	AutoUserWindow UserWindow::CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent)
-	{
-		return new UserWindow(config, parent);
-	}
-
 	void UserWindow::OpenImpl()
 	{
 		nativeWindowMask = toWindowMask(this->config);

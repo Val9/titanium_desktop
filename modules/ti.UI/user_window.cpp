@@ -10,6 +10,11 @@
 
 namespace ti
 {
+AutoUserWindow UserWindow::CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent)
+{
+	return new UserWindow(config, parent);
+}
+
 UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 	KEventObject("UI.UserWindow"),
 #ifdef OS_LINUX

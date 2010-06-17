@@ -40,7 +40,6 @@ namespace ti
 	class UserWindow : public KEventObject
 	{
 		public:
-			// Platform-specific implementation.
 			static AutoUserWindow CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent);
 
 			void Open();

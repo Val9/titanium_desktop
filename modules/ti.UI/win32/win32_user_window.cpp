@@ -413,11 +413,6 @@ static void GetChromeSize(Bounds& chromeSize, DWORD windowStyle)
 	chromeSize.height = rect.bottom - rect.top - 100;
 }
 
-AutoUserWindow UserWindow::CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent)
-{
-	return new UserWindow(config, parent);
-}
-
 typedef struct DrawChildWindowData_
 {
 	HWND parentWindow;
