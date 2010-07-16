@@ -36,7 +36,7 @@ namespace ti
 	static gboolean WebViewReadyCallback(WebKitWebView*, gpointer);
 	static void WindowObjectClearedCallback(WebKitWebView*,
 		WebKitWebFrame*, JSGlobalContextRef, JSObjectRef, gpointer);
-	static void PopulatePopupCallback(WebKitWebView*, Menu*, gpointer);
+	static void PopulatePopupCallback(WebKitWebView*, GtkMenu*, gpointer);
 	static WebKitWebView* CreateWebViewCallback(
 		WebKitWebView*, WebKitWebFrame*, gpointer);
 	static gint NewWindowPolicyDecisionCallback(WebKitWebView*,
@@ -645,7 +645,7 @@ namespace ti
 	
 	static void PopulatePopupCallback(
 		WebKitWebView *webView,
-		Menu *menu,
+		GtkMenu *menu,
 		gpointer data)
 	{
 		UserWindow* userWindow = static_cast<UserWindow*>(data);
