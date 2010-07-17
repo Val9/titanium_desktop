@@ -42,8 +42,8 @@ namespace ti
 		public:
 			static AutoUserWindow CreateWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent);
 
-			void Open();
-			bool Close();
+			void _Open();
+			bool _Close();
 			SharedString DisplayString(int levels=3);
 			virtual ~UserWindow();
 			void UpdateWindowForURL(std::string url);
@@ -81,8 +81,8 @@ namespace ti
 			void _IsFullscreen(const kroll::ValueList&, kroll::KValueRef);
 			void _SetFullscreen(const kroll::ValueList&, kroll::KValueRef);
 			void _GetId(const kroll::ValueList&, kroll::KValueRef);
-			void _Open(const kroll::ValueList&, kroll::KValueRef);
-			void _Close(const kroll::ValueList&, kroll::KValueRef);
+			void _OpenWindow(const kroll::ValueList&, kroll::KValueRef);
+			void _CloseWindow(const kroll::ValueList&, kroll::KValueRef);
 			void _GetX(const kroll::ValueList&, kroll::KValueRef);
 			double _GetX();
 			void _SetX(const kroll::ValueList&, kroll::KValueRef);
@@ -169,8 +169,8 @@ namespace ti
 			bool IsUsingChrome();
 			bool IsUsingScrollbars();
 			bool IsFullscreen();
-			void OpenImpl();
-			bool CloseImpl();
+			void Open();
+			bool Close();
 			void Closed();
 			double GetX();
 			void SetX(double x);

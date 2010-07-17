@@ -89,8 +89,8 @@ UserWindow::UserWindow(AutoPtr<WindowConfig> config, AutoUserWindow parent) :
 	this->SetMethod("setFullscreen", &UserWindow::_SetFullscreen);
 	this->SetMethod("setFullScreen", &UserWindow::_SetFullscreen);
 	this->SetMethod("getID", &UserWindow::_GetId);
-	this->SetMethod("open", &UserWindow::_Open);
-	this->SetMethod("close", &UserWindow::_Close);
+	this->SetMethod("open", &UserWindow::_OpenWindow);
+	this->SetMethod("close", &UserWindow::_CloseWindow);
 	this->SetMethod("getX", &UserWindow::_GetX);
 	this->SetMethod("setX", &UserWindow::_SetX);
 	this->SetMethod("getY", &UserWindow::_GetY);
@@ -179,10 +179,9 @@ static double Constrain(double value, double min, double max)
 	return value;
 }
 
-void UserWindow::Open()
+void UserWindow::_Open()
 {
 	this->FireEvent(Event::OPEN);
-	this->OpenImpl();
 
 	// We are now in the UI binding's open window list
 	this->binding->AddToOpenWindows(AutoUserWindow(this, true));
@@ -203,11 +202,8 @@ void UserWindow::Open()
 		this->SetURL(this->config->GetURL());
 }
 
-bool UserWindow::Close()
+bool UserWindow::_Close()
 {
-	if(!this->active)
-		return false;
-
 	// If FireEvent returns true, stopPropagation or preventDefault
 	// was not called on the event -- and we should continue closing
 	// the window. Otherwise, we want to cancel the close.
@@ -217,7 +213,7 @@ bool UserWindow::Close()
 		this->active = false; // Prevent further modification.
 	}
 
-	return this->CloseImpl();
+	return !this->active;
 }
 
 void UserWindow::Closed()
@@ -496,7 +492,7 @@ void UserWindow::_GetId(const kroll::ValueList& args, kroll::KValueRef result)
 	result->SetString(this->config->GetID());
 }
 
-void UserWindow::_Open(const kroll::ValueList& args, kroll::KValueRef result)
+void UserWindow::_OpenWindow(const kroll::ValueList& args, kroll::KValueRef result)
 {
 	// Don't allow a window to be opened twice
 	if (this->active || this->initialized)
@@ -509,7 +505,7 @@ void UserWindow::_Open(const kroll::ValueList& args, kroll::KValueRef result)
 	}
 }
 
-void UserWindow::_Close(const kroll::ValueList& args, kroll::KValueRef result)
+void UserWindow::_CloseWindow(const kroll::ValueList& args, kroll::KValueRef result)
 {
 	// Don't allow a non-active window to be closed
 	if (this->active)
