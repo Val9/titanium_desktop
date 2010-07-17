@@ -657,24 +657,33 @@ std::string UserWindow::GetURL()
 	return config->GetURL();
 }
 
-void UserWindow::OpenImpl()
+void UserWindow::Open()
 {
 	this->InitWindow();
 	this->SetupDecorations();
 	this->InitWebKit();
 	this->SetupIcon();
+
+	this->_Open();
+
 	this->SetupFrame();
 
 	FireEvent(Event::OPENED);
 }
 
-bool UserWindow::CloseImpl()
+bool UserWindow::Close()
 {
 	// Hold a reference here so we can still get the value of
 	// this->timer and this->active even after calling ::Closed
 	// which will remove us from the open window list and decrement
 	// the reference count.
 	AutoUserWindow keep(this, true);
+
+	// Do not double close the window
+	if (!this->active)
+		return false;
+
+	this->_Close();
 
 	// If the window is still active at this point, it
 	// indicates an event listener has cancelled this close event.

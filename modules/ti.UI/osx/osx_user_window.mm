@@ -26,7 +26,7 @@ namespace ti
 		return mask;
 	}
 
-	void UserWindow::OpenImpl()
+	void UserWindow::Open()
 	{
 		nativeWindowMask = toWindowMask(this->config);
 
@@ -83,6 +83,8 @@ namespace ti
 
 		[nativeWindow setExcludedFromWindowsMenu:config->IsToolWindow()];
 		[nativeWindow open];
+
+		this->_Open();
 		this->FireEvent(Event::OPENED);
 	}
 
@@ -212,13 +214,19 @@ namespace ti
 		return this->config->IsFullscreen();
 	}
 
-	bool UserWindow::CloseImpl()
+	bool UserWindow::Close()
 	{
 		// Hold a reference here so we can still get the value of
 		// this->timer and this->active even after calling ::Closed
 		// which will remove us from the open window list and decrement
 		// the reference count.
 		AutoUserWindow keep(this, true);
+
+		// Guard against re-closing a window
+		if (!this->active || !this->nativeWindow)
+			return false;
+
+		this->_Close();
 
 		// If the window is still active at this point, it  indicates
 		// an event listener has cancelled this close event.
