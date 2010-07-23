@@ -4,37 +4,40 @@
  * Copyright (c) 2008-2010 Appcelerator, Inc. All Rights Reserved.
  */
 
-#ifndef _TCP_SOCKET_BINDING_H_
-#define _TCP_SOCKET_BINDING_H_
+#ifndef _TCP_SOCKET_H_
+#define _TCP_SOCKET_H_
 
-#include <Poco/Thread.h>
 #include <Poco/Net/StreamSocket.h>
-#include <Poco/Net/SocketReactor.h>
-#include <Poco/Net/SocketNotification.h>
 
 #include <kroll/kroll.h>
+#include "socket_observer.h"
 
 namespace ti
 {
-	class TCPSocketBinding : public KEventObject
+	class TCPSocket : public KEventObject, public SocketObserver<TCPSocket>
 	{
 	public:
-		TCPSocketBinding(std::string& host, int port);
-		virtual ~TCPSocketBinding();
+		TCPSocket(std::string& host, int port);
+		virtual ~TCPSocket();
 
 		void Connect(const ValueList& args, KValueRef result);
 		void Close(const ValueList& args, KValueRef result);
 		void Write(const ValueList& args, KValueRef result);
 		void SetKeepAlive(const ValueList& args, KValueRef result);
+		void SetReadBufferSize(const ValueList& args, KValueRef result);
 
-		void OnRead(const Poco::AutoPtr<Poco::Net::ReadableNotification>& n);
-		void OnWrite(const Poco::AutoPtr<Poco::Net::WritableNotification>& n);
-		void OnTimeout(const Poco::AutoPtr<Poco::Net::TimeoutNotification>& n);
-		void OnError(const Poco::AutoPtr<Poco::Net::ErrorNotification>& n);
+		// Socket event callbacks
+		void OnConnect();
+		void OnWritable();
+		void OnReadable();
+		void OnError();
 
 	private:
+		void FireErrorEvent(int socketErrorCode);
+
 		Poco::Net::SocketAddress address;
 		Poco::Net::StreamSocket socket;
+		size_t readBufferSize;
 	};
 }
 
