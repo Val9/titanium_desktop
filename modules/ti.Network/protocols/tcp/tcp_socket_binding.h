@@ -7,10 +7,10 @@
 #ifndef _TCP_SOCKET_H_
 #define _TCP_SOCKET_H_
 
+#include <dequeue>
 #include <Poco/Net/StreamSocket.h>
-
+#include <Poco/Mutex.h>
 #include <kroll/kroll.h>
-#include "socket_observer.h"
 
 namespace ti
 {
@@ -20,11 +20,11 @@ namespace ti
 		TCPSocket(std::string& host, int port);
 		virtual ~TCPSocket();
 
-		void Connect(const ValueList& args, KValueRef result);
-		void Close(const ValueList& args, KValueRef result);
-		void Write(const ValueList& args, KValueRef result);
-		void SetKeepAlive(const ValueList& args, KValueRef result);
-		void SetReadBufferSize(const ValueList& args, KValueRef result);
+		void Connect();
+		void Close();
+		bool Write(BytesRef data);
+		bool Flush();
+		void SetKeepAlive(bool enable);
 
 		// Socket event callbacks
 		void OnConnect();
@@ -33,11 +33,22 @@ namespace ti
 		void OnError();
 
 	private:
+		// Write data to socket and if all data was sent, return true.
+		// Any unsent data will be queued for later and the method will return false.
+		bool WriteImpl(BytesRef data);
+
+		// Fire an error event for the given socket error code.
 		void FireErrorEvent(int socketErrorCode);
 
 		Poco::Net::SocketAddress address;
 		Poco::Net::StreamSocket socket;
-		size_t readBufferSize;
+
+		typedef std::dequeue<BytesRef> BytesQueue;
+		BytesQueue writeQueue;
+		Poco::FastMutex writeQueueMutex;
+
+		static BytesRef readBuffer;
+		static size_t readBufferUsed;
 	};
 }
 
