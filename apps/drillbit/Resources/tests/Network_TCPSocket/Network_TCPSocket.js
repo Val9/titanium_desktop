@@ -17,21 +17,20 @@ describe("Network.TCPSocket",{
 		});
 		this.testServer.launch();
 		
-		// create a socket to the localhost web server.
+		// Create a test socket client
 		this.socket = Titanium.Network.createTCPSocket("127.0.0.1", 8080);
 	},
 	
 	after_all: function()
 	{
-		this.socket = null;
+		this.socket.close();
 		this.testServer.kill();
 	},
 
 	// test the network object and properties.
-	test_TCPSocket_object:function()
+	test_TCPSocket_object: function()
 	{
-		value_of(this.socket).should_be_object();
-		
+		value_of(this.socket).should_be_object();	
 		value_of(this.socket.close).should_be_function();
 		value_of(this.socket.connect).should_be_function();
 		value_of(this.socket.isClosed).should_be_function();
@@ -50,85 +49,59 @@ describe("Network.TCPSocket",{
 	
 	test_connect_as_async: function(test)
 	{
-		var mysocket = this.socket;
-		value_of(this.socket.connect).should_be_function();
-		value_of(this.socket.close).should_be_function();
-		value_of(this.socket.isClosed()).should_be_true();
-		value_of(this.socket.connect()).should_be_true();
+		var timer;
 
-		setTimeout(function() {
-			// Connect happens asynchronously now, so isClosed might not 
-			// be true immediately.
-			try {
-				value_of(mysocket.isClosed()).should_be_false();
-				value_of(mysocket.close()).should_be_true();
-				value_of(mysocket.isClosed()).should_be_true();
+		this.socket.on("connect", function()
+		{
+			try
+			{
+				clearTimeout(timer);
+				value_of(this.socket.isClosed()).should_be_false();
 				test.passed();
-			} catch (exception) {
-				test.failed(String(exception));
+			catch (e)
+			{
+				test.failed(e);
 			}
-		}, 1000);
+		});
+
+		this.socket.connect();
+		timer = setTimeout(function()
+		{
+			test.failed("Test timed out");
+		}, 2000);
 	},
 
 	test_read_write_as_async: function(test)
 	{
-		var socket = this.socket;
-		var testText = "Can anyone hear me???";
-		var buffer = "";
 		var timer;
+		var message = "hello, can anyone hear me?";
 
-		socket.onRead( function(data)
+		this.socket.on("connect", function()
 		{
-			buffer += data;
+			// Send test server a message.
+			this.socket.write(message);
 		});
 
-		socket.onReadComplete( function()
+		this.socket.on("data", function(data)
 		{
 			clearTimeout(timer);
 
-			if (buffer != testText)
+			try
 			{
-				test.failed("Data received back does not match what was sent: " + buffer);
+				// Test server should echo the message back.
+				value_of(data).should_be(message);
+				test.passed();
 			}
-			else
+			catch (e)
 			{
-				test.failed("data: " + buffer);
+				test.failed(e);
 			}
-
-			socket.close();
 		});
-		
-		socket.onTimeout( function(buf)
-		{
-			clearTimeout(timer);
-			test.failed("Socket timed out");
-		});
-		
-		try 
-		{
-			value_of(socket.connect()).should_be_true();		
-		}
-		catch(e)
-		{
-			// during testing I found that this exception 
-			// will never get hit because we don't intercept the 
-			// exception here, only drillbit seems capable enough
-			// to handle this.  kind of sucks since I could use this as a test.
-			test.failed("failed with exception on connect"+e);
-		}
 
-		try
-		{
-			value_of(socket.write(testText)).should_be_true();
-		}
-		catch(e)
-		{
-			test.failed("Exception thrown while writing: " + e);			
-		}
-
+		this.socket.connect();
 		timer = setTimeout(function()
 		{
-			test.failed('Test timed out');
+			test.failed("Timed out waiting for data");
 		}, 2000);
 	}
 });
