@@ -596,8 +596,6 @@ describe("Bytes, KObject, KList, etc",{
 		value_of(blob.concat("illa")).should_be("Mozilla");
 		value_of(blob.concat("illa", " 123", "456")).should_be("Mozilla 123456");
 		value_of(blob.concat(blob2)).should_be("Mozilla");
-		
-		value_of(Titanium.API.createBytes("Moz",blob2)).should_be("Mozilla");
 	},
 	test_blob_from_binary: function()
 	{

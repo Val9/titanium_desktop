@@ -212,7 +212,7 @@ describe("UI Module Tests",{
 
 		var w = Titanium.UI.getCurrentWindow().createWindow('app://test.html');
 		var listenerID = w.addEventListener(eventListener);
-		value_of(listenerID).should_be_number();
+		value_of(listenerID).should_be_function();
 
 		addEventTest(function() { w.open(); }, [Titanium.OPEN, Titanium.OPENED, Titanium.PAGE_LOADED], 2000);
 		addEventTest(function() { w.setVisible(false); }, [Titanium.HIDDEN]);
