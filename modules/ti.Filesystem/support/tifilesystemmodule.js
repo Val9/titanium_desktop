@@ -30,7 +30,9 @@
         file.write = function(data)
         {
             var fs = this.open(Titanium.Filesystem.MODE_WRITE);
+			Titanium.API.debug("------writing to file-----");
             var result = fs.write(data);
+			Titanium.API.debug("------write done!------");
             fs.close();
             return result;
         }
