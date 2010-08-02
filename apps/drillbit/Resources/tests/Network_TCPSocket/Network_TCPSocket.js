@@ -15,20 +15,13 @@ describe("Network.TCPSocket",{
 	
 	after_all: function()
 	{
-		/*this.socket.close();
-		this.testServer.kill();*/
+		//this.testServer.kill();
 	},
 
 	before: function()
 	{
 		// Create a test socket client
 		this.socket = Titanium.Network.createTCPSocket("127.0.0.1", 8080);
-		Titanium.API.debug(this.socket);
-	},
-
-	after: function()
-	{
-		//this.socket.close();
 	},
 
 	// test the network object and properties.
@@ -53,6 +46,32 @@ describe("Network.TCPSocket",{
 			test.passed();
 		});
 
+		socket.on("error", function(err)
+		{
+			clearTimeout(timer);
+			test.failed(err);
+		});
+
+		socket.connect();
+		timer = setTimeout(function()
+		{
+			test.failed("Test timed out");
+		}, 2000);
+	},
+
+	test_timeout_as_async: function(test)
+	{
+		var timer;
+		var socket = this.socket;
+
+		socket.setTimeout(1000);
+		socket.on("timeout", function()
+		{
+			clearTimeout(timer);
+			socket.close();
+			test.passed();
+		});
+
 		socket.connect();
 		timer = setTimeout(function()
 		{
@@ -70,7 +89,6 @@ describe("Network.TCPSocket",{
 		{
 			// Send test server a message.
 			socket.write(message);
-			Titanium.API.debug("message sent!!!!!!!");
 		});
 
 		socket.on("data", function(data)
@@ -81,6 +99,7 @@ describe("Network.TCPSocket",{
 			{
 				// Test server should echo the message back.
 				value_of(data).should_be(message);
+				socket.close();
 				test.passed();
 			}
 			catch (e)
@@ -98,7 +117,7 @@ describe("Network.TCPSocket",{
 		socket.connect();
 		timer = setTimeout(function()
 		{
-			test.failed("Timed out waiting for data");
-		}, 3000);
+			test.failed("Test timed out");
+		}, 2000);
 	}
 });

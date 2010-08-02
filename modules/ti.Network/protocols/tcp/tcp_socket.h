@@ -28,7 +28,7 @@ namespace ti
 		void Close();
 		bool Write(BytesRef data);
 		void SetKeepAlive(bool enable);
-		void SetTimeout(int timeout);
+		void SetTimeout(long milliseconds);
 
 		void ReadThread();
 		void WriteThread();
@@ -39,9 +39,14 @@ namespace ti
 
 		// Bindings
 		void _Connect(const ValueList& args, KValueRef result);
+		void _SetTimeout(const ValueList& args, KValueRef result);
 		void _Close(const ValueList& args, KValueRef result);
 		void _IsClosed(const ValueList& args, KValueRef result);
 		void _Write(const ValueList& args, KValueRef result);
+		void _OnRead(const ValueList& args, KValueRef result);
+		void _OnReadComplete(const ValueList& args, KValueRef result);
+		void _OnError(const ValueList& args, KValueRef result);
+		void _OnTimeout(const ValueList& args, KValueRef result);
 
 		Poco::Net::SocketAddress address;
 		Poco::Net::StreamSocket socket;

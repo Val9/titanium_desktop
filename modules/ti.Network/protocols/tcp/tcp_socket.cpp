@@ -7,6 +7,7 @@
 #include "tcp_socket.h"
 
 #include <Poco/ThreadPool.h>
+#include <Poco/Timespan.h>
 
 #define READ_BUFFER_SIZE 40*1024
 #define READ_BUFFER_MIN_SIZE 128
@@ -16,14 +17,20 @@ namespace ti
 	TCPSocket::TCPSocket(std::string& host, int port) :
 		KEventObject("Network.TCPSocket"),
 		address(host, port),
+		socket(address.family()),
 		closed(true),
 		reader(*this, &TCPSocket::ReadThread),
 		writer(*this, &TCPSocket::WriteThread)
 	{
 		SetMethod("connect", &TCPSocket::_Connect);
+		SetMethod("setTimeout", &TCPSocket::_SetTimeout);
 		SetMethod("close", &TCPSocket::_Close);
 		SetMethod("isClosed", &TCPSocket::_IsClosed);
 		SetMethod("write", &TCPSocket::_Write);
+		SetMethod("onRead", &TCPSocket::_OnRead);
+		SetMethod("onReadComplete", &TCPSocket::_OnReadComplete);
+		SetMethod("onError", &TCPSocket::_OnError);
+		SetMethod("onTimeout", &TCPSocket::_OnTimeout);
 	}
 
 	TCPSocket::~TCPSocket()
@@ -49,7 +56,7 @@ namespace ti
 		if (this->closed)
 			throw ValueException::FromString("socket is already closed");
 
-		this->socket.shutdown();
+		this->socket.close();
 		this->closed = true;
 		FireEvent("close");
 	}
@@ -93,6 +100,19 @@ namespace ti
 	void TCPSocket::SetKeepAlive(bool enable)
 	{
 		this->socket.setKeepAlive(enable);
+	}
+
+	void TCPSocket::SetTimeout(long milliseconds)
+	{
+		try
+		{
+			Poco::Timespan t(0, milliseconds * 1000);
+			this->socket.setReceiveTimeout(t);
+		}
+		catch (Poco::Exception& e)
+		{
+			throw ValueException::FromFormat("setTimeout failed: %s", e.what());
+		}
 	}
 
 	void TCPSocket::ReadThread()
@@ -142,6 +162,10 @@ namespace ti
 					FireEvent("end");
 					break;
 				}
+			}
+			catch (Poco::TimeoutException& e)
+			{
+				this->FireEvent("timeout");
 			}
 			catch (Poco::Exception& e)
 			{
@@ -212,6 +236,12 @@ namespace ti
 		Connect();
 	}
 
+	void TCPSocket::_SetTimeout(const ValueList& args, KValueRef result)
+	{
+		args.VerifyException("setTimeout", "n");
+		SetTimeout(args.GetNumber(0));
+	}
+
 	void TCPSocket::_Close(const ValueList& args, KValueRef result)
 	{
 		Close();
@@ -242,6 +272,30 @@ namespace ti
 		}
 
 		result->SetBool(Write(data));
+	}
+
+	void TCPSocket::_OnRead(const ValueList& args, KValueRef result)
+	{
+		args.VerifyException("onRead", "m");
+		AddEventListener("data", args.GetMethod(0));
+	}
+
+	void TCPSocket::_OnReadComplete(const ValueList& args, KValueRef result)
+	{
+		args.VerifyException("onReadComplete", "m");
+		AddEventListener("end", args.GetMethod(0));
+	}
+
+	void TCPSocket::_OnError(const ValueList& args, KValueRef result)
+	{
+		args.VerifyException("onError", "m");
+		AddEventListener("error", args.GetMethod(0));
+	}
+
+	void TCPSocket::_OnTimeout(const ValueList& args, KValueRef result)
+	{
+		args.VerifyException("onTimeout", "m");
+		AddEventListener("timeout", args.GetMethod(0));
 	}
 }
 

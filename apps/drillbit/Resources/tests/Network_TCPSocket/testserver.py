@@ -1,3 +1,4 @@
+import threading
 import SocketServer
 
 class TestServerHandler(SocketServer.BaseRequestHandler):
@@ -19,7 +20,10 @@ class TestServerHandler(SocketServer.BaseRequestHandler):
 
         print 'Done.'
 
+class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    pass
+
 if __name__ == '__main__':
 
-    server = SocketServer.TCPServer(('127.0.0.1', 8080), TestServerHandler)
+    server = ThreadedTCPServer(('127.0.0.1', 8080), TestServerHandler)
     server.serve_forever()
