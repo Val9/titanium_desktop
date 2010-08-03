@@ -5,20 +5,23 @@ class TestServerHandler(SocketServer.BaseRequestHandler):
     """A simple testing server for TCP drillbit tests"""
 
     def handle(self):
-        print 'New connection...'
+        print 'New connection started'
 
-        try:
-            # Assume test case first writes a string
-            text = self.request.recv(1024)
-            print 'Got data: %s' % text
+        while True:
+            try:
+                data = self.request.recv(1024)
+                length = len(data)
+                if length == 0: break
+                print 'Recv %d bytes' % length
 
-            # Echo back the text that was just sent to us
-            self.request.send(text)
-            print 'Sent response'
-        except Exception, e:
-            print 'ERROR: %s' % e
+                # Echo back the text that was just sent to us
+                self.request.send(data)
+                print 'Sent echo response'
+            except Exception, e:
+                print 'ERROR: %s' % e
+                break
 
-        print 'Done.'
+        print 'Connection closed'
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass

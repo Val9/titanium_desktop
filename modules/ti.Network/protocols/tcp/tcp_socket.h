@@ -26,7 +26,7 @@ namespace ti
 
 		void Connect();
 		void Close();
-		bool Write(BytesRef data);
+		void Write(BytesRef data);
 		void SetKeepAlive(bool enable);
 		void SetTimeout(long milliseconds);
 
@@ -35,7 +35,6 @@ namespace ti
 
 	private:
 		BytesRef Send(BytesRef data);
-		void AppendWriteQueue(BytesRef data);
 
 		// Bindings
 		void _Connect(const ValueList& args, KValueRef result);

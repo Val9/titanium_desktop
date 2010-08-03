@@ -61,40 +61,19 @@ namespace ti
 		FireEvent("close");
 	}
 
-	bool TCPSocket::Write(BytesRef data)
+	void TCPSocket::Write(BytesRef data)
 	{
 		if (this->closed)
 			throw ValueException::FromString("socket is not connected");
 
 		Poco::FastMutex::ScopedLock lock(this->writeQueueMutex);
-		BytesRef queueData;
 
-		// Send to socket directly if no data is queued for writing.
-		if (this->writeQueue.empty())
+		bool startWriter = this->writeQueue.empty();
+		this->writeQueue.push_back(data);
+		if (startWriter)
 		{
-			try
-			{
-				queueData = this->Send(data);
-			}
-			catch (Poco::Exception& e)
-			{
-				FireErrorEvent(e);
-			}
+			Poco::ThreadPool::defaultPool().start(writer);
 		}
-		else
-		{
-			queueData = data;
-		}
-
-		// Push any unsent data into write queue to be sent later
-		// on our write thread.
-		if (!queueData.isNull())
-		{
-			AppendWriteQueue(queueData);
-			return false;
-		}
-
-		return true;
 	}
 
 	void TCPSocket::SetKeepAlive(bool enable)
@@ -221,16 +200,6 @@ namespace ti
 		return 0;
 	}
 
-	void TCPSocket::AppendWriteQueue(BytesRef data)
-	{
-		bool startWriter = this->writeQueue.empty();
-		this->writeQueue.push_back(data);
-		if (startWriter)
-		{
-			Poco::ThreadPool::defaultPool().start(writer);
-		}
-	}
-
 	void TCPSocket::_Connect(const ValueList& args, KValueRef result)
 	{
 		Connect();
@@ -271,7 +240,7 @@ namespace ti
 			}
 		}
 
-		result->SetBool(Write(data));
+		Write(data);
 	}
 
 	void TCPSocket::_OnRead(const ValueList& args, KValueRef result)
