@@ -56,7 +56,7 @@ namespace ti
 		if (this->closed)
 			throw ValueException::FromString("socket is already closed");
 
-		this->socket.close();
+		this->socket.shutdown();
 		this->closed = true;
 		FireEvent("close");
 	}
@@ -66,10 +66,10 @@ namespace ti
 		if (this->closed)
 			throw ValueException::FromString("socket is not connected");
 
-		Poco::FastMutex::ScopedLock lock(this->writeQueueMutex);
+		Poco::FastMutex::ScopedLock lock(this->writeMutex);
 
 		bool startWriter = this->writeQueue.empty();
-		this->writeQueue.push_back(data);
+		this->writeQueue.push(data);
 		if (startWriter)
 		{
 			Poco::ThreadPool::defaultPool().start(writer);
@@ -156,48 +156,40 @@ namespace ti
 
 	void TCPSocket::WriteThread()
 	{
-		while (true)
+		this->writeMutex.lock();
+		while (!this->writeQueue.empty())
 		{
+			BytesRef data = this->writeQueue.front();
+			char* buffer = data->Pointer();
+			size_t remaining = data->Length();
+
+			// Release lock while sending data to avoid blocking write().
+			this->writeMutex.unlock();
+			while (true)
 			{
-				Poco::FastMutex::ScopedLock lock(this->writeQueueMutex);
-				if (this->writeQueue.empty())
-				{
-					FireEvent("drain");
-					break;
-				}
-
-				BytesRef data = this->writeQueue.front();
-				this->writeQueue.pop_front();
-
-				// Push back any unsent data to from of queue for sending later.
 				try
 				{
-					BytesRef unsent = this->Send(data);
-					if (!unsent.isNull())
-						this->writeQueue.push_front(unsent);
+					size_t sent = this->socket.sendBytes(buffer, remaining);
+					if (sent == remaining) break;
+
+					buffer += sent;
+					remaining -= sent;
 				}
 				catch (Poco::Exception& e)
 				{
 					FireErrorEvent(e);
-					break;
+					return;
 				}
 			}
 
-			Poco::Thread::sleep(250);
-		}
-	}
-
-	BytesRef TCPSocket::Send(BytesRef data)
-	{
-		int length = data->Length();
-		int bytesSent = this->socket.sendBytes(data->Pointer(), length);
-		if (bytesSent < length)
-		{
-			BytesRef unsentData = new Bytes(data, bytesSent);
-			return unsentData;
+			this->writeMutex.lock();
+			this->writeQueue.pop();
 		}
 
-		return 0;
+		// Notify any listeners we have drained the write queue.
+		// Be sure to unlock first since callbacks could call write().
+		this->writeMutex.unlock();
+		FireEvent("drain");
 	}
 
 	void TCPSocket::_Connect(const ValueList& args, KValueRef result)

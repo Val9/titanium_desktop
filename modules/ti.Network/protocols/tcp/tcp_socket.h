@@ -7,7 +7,7 @@
 #ifndef _TINET_TCP_SOCKET_H_
 #define _TINET_TCP_SOCKET_H_
 
-#include <deque>
+#include <queue>
 #include <string>
 
 #include <Poco/Net/StreamSocket.h>
@@ -34,9 +34,6 @@ namespace ti
 		void WriteThread();
 
 	private:
-		BytesRef Send(BytesRef data);
-
-		// Bindings
 		void _Connect(const ValueList& args, KValueRef result);
 		void _SetTimeout(const ValueList& args, KValueRef result);
 		void _Close(const ValueList& args, KValueRef result);
@@ -52,11 +49,11 @@ namespace ti
 		bool closed;
 
 		Poco::Thread readThread;
-		Poco::RunnableAdapter<TCPSocket> reader, writer;
+		Poco::RunnableAdapter<TCPSocket> reader;
 
-		typedef std::deque<BytesRef> BytesQueue;
-		BytesQueue writeQueue;
-		Poco::FastMutex writeQueueMutex;
+		Poco::RunnableAdapter<TCPSocket> writer;
+		std::queue<BytesRef> writeQueue;
+		Poco::FastMutex writeMutex;
 	};
 }
 
