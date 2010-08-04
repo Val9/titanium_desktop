@@ -25,7 +25,7 @@ namespace ti
 		virtual ~TCPSocket();
 
 		void Connect();
-		void Close();
+		bool Close();
 		void Write(BytesRef data);
 		void SetKeepAlive(bool enable);
 		void SetTimeout(long milliseconds);
@@ -34,6 +34,8 @@ namespace ti
 		void WriteThread();
 
 	private:
+		void HandleError(Poco::Exception& e);
+
 		void _Connect(const ValueList& args, KValueRef result);
 		void _SetTimeout(const ValueList& args, KValueRef result);
 		void _Close(const ValueList& args, KValueRef result);
@@ -46,14 +48,11 @@ namespace ti
 
 		Poco::Net::SocketAddress address;
 		Poco::Net::StreamSocket socket;
-		bool closed;
-
+		enum { CONNECTING, READONLY, WRITEONLY, DUPLEX, CLOSING, CLOSED } state;
 		Poco::Thread readThread;
-		Poco::RunnableAdapter<TCPSocket> reader;
-
-		Poco::RunnableAdapter<TCPSocket> writer;
+		Poco::RunnableAdapter<TCPSocket> reader, writer;
 		std::queue<BytesRef> writeQueue;
-		Poco::FastMutex writeMutex;
+		Poco::FastMutex mutex;
 	};
 }
 

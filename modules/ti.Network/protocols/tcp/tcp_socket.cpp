@@ -18,7 +18,7 @@ namespace ti
 		KEventObject("Network.TCPSocket"),
 		address(host, port),
 		socket(address.family()),
-		closed(true),
+		state(CLOSED),
 		reader(*this, &TCPSocket::ReadThread),
 		writer(*this, &TCPSocket::WriteThread)
 	{
@@ -35,45 +35,53 @@ namespace ti
 
 	TCPSocket::~TCPSocket()
 	{
-		if (!this->closed)
-			Close();
 	}
 
 	void TCPSocket::Connect()
 	{
-		if (!this->closed)
+		Poco::FastMutex::ScopedLock lock(this->mutex);
+
+		if (this->state != CLOSED)
 			throw ValueException::FromString("socket is already connected");
 
 		// Start up the reading thread.
 		// This thread will establish the connection
 		// and then begin reading data from the socket.
-		this->closed = false;
+		this->state = CONNECTING;
 		this->readThread.start(reader);
 	}
 
-	void TCPSocket::Close()
+	bool TCPSocket::Close()
 	{
-		if (this->closed)
-			throw ValueException::FromString("socket is already closed");
+		{
+			Poco::FastMutex::ScopedLock lock(this->mutex);
 
-		this->socket.shutdown();
-		this->closed = true;
+			if (this->state == CLOSED)
+				return false;
+
+			this->socket.close();
+			this->state = CLOSED;
+
+			// Delete any remaining buffers in write queue.
+			this->writeQueue = std::queue<BytesRef>();
+		}
+
 		FireEvent("close");
+		return true;
 	}
 
 	void TCPSocket::Write(BytesRef data)
 	{
-		if (this->closed)
-			throw ValueException::FromString("socket is not connected");
+		Poco::FastMutex::ScopedLock lock(this->mutex);
+		if (this->state != DUPLEX && this->state != WRITEONLY)
+			throw ValueException::FromString("Socket is not writable");
 
-		Poco::FastMutex::ScopedLock lock(this->writeMutex);
-
-		bool startWriter = this->writeQueue.empty();
-		this->writeQueue.push(data);
-		if (startWriter)
+		if (this->writeQueue.empty())
 		{
-			Poco::ThreadPool::defaultPool().start(writer);
+			Poco::ThreadPool::defaultPool().start(this->writer);
 		}
+
+		this->writeQueue.push(data);
 	}
 
 	void TCPSocket::SetKeepAlive(bool enable)
@@ -90,7 +98,7 @@ namespace ti
 		}
 		catch (Poco::Exception& e)
 		{
-			throw ValueException::FromFormat("setTimeout failed: %s", e.what());
+			HandleError(e);
 		}
 	}
 
@@ -99,12 +107,17 @@ namespace ti
 		try
 		{
 			this->socket.connect(this->address);
-			this->FireEvent("connect");
+
+			{
+				Poco::FastMutex::ScopedLock lock(this->mutex);
+				this->state = DUPLEX;
+			}
+
+			FireEvent("connect");
 		}
 		catch (Poco::Exception& e)
 		{
-			// Failed to connect socket, report error
-			this->FireErrorEvent(e);
+			HandleError(e);
 			return;
 		}
 
@@ -136,10 +149,10 @@ namespace ti
 				}
 				else
 				{
-					// Remote host has closed their end, so we will no longer
-					// recv any new data.
-					FireEvent("end");
-					break;
+					// Remote host sent FIN, we are now write only.
+					Poco::FastMutex::ScopedLock lock(this->mutex);
+					this->state = WRITEONLY;
+					return;
 				}
 			}
 			catch (Poco::TimeoutException& e)
@@ -148,15 +161,15 @@ namespace ti
 			}
 			catch (Poco::Exception& e)
 			{
-				this->FireErrorEvent(e);
-				break;
+				HandleError(e);
+				return;
 			}
 		}
 	}
 
 	void TCPSocket::WriteThread()
 	{
-		this->writeMutex.lock();
+		this->mutex.lock();
 		while (!this->writeQueue.empty())
 		{
 			BytesRef data = this->writeQueue.front();
@@ -164,7 +177,7 @@ namespace ti
 			size_t remaining = data->Length();
 
 			// Release lock while sending data to avoid blocking write().
-			this->writeMutex.unlock();
+			this->mutex.unlock();
 			while (true)
 			{
 				try
@@ -177,19 +190,31 @@ namespace ti
 				}
 				catch (Poco::Exception& e)
 				{
-					FireErrorEvent(e);
+					HandleError(e);
 					return;
 				}
 			}
 
-			this->writeMutex.lock();
+			this->mutex.lock();
 			this->writeQueue.pop();
 		}
 
-		// Notify any listeners we have drained the write queue.
-		// Be sure to unlock first since callbacks could call write().
-		this->writeMutex.unlock();
+		// Notify listeners we have fully drained the queue.
+		this->mutex.unlock();
 		FireEvent("drain");
+	}
+
+	void TCPSocket::HandleError(Poco::Exception& e)
+	{
+		{
+			Poco::FastMutex::ScopedLock lock(this->mutex);
+			if (this->state == CLOSED || this->state == CLOSING)
+				return;
+			this->state = CLOSING;
+		}
+
+		FireErrorEvent(e);
+		Close();
 	}
 
 	void TCPSocket::_Connect(const ValueList& args, KValueRef result)
@@ -205,12 +230,13 @@ namespace ti
 
 	void TCPSocket::_Close(const ValueList& args, KValueRef result)
 	{
-		Close();
+		result->SetBool(Close());
 	}
 
 	void TCPSocket::_IsClosed(const ValueList& args, KValueRef result)
 	{
-		result->SetBool(this->closed);
+		Poco::FastMutex::ScopedLock lock(this->mutex);
+		result->SetBool(this->state == CLOSED);
 	}
 
 	void TCPSocket::_Write(const ValueList& args, KValueRef result)
