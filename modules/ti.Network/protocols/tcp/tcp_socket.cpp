@@ -150,8 +150,12 @@ namespace ti
 				else
 				{
 					// Remote host sent FIN, we are now write only.
-					Poco::FastMutex::ScopedLock lock(this->mutex);
-					this->state = WRITEONLY;
+					{
+						Poco::FastMutex::ScopedLock lock(this->mutex);
+						this->state = WRITEONLY;
+					}
+
+					FireEvent("end");
 					return;
 				}
 			}
